@@ -2,6 +2,6 @@ const formatName = (name) => {
   return name.trim().toUpperCase();
 };
 
-export default {
+module.exports = {
   formatName
 };
