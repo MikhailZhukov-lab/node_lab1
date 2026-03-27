@@ -1,6 +1,7 @@
 {
   "name": "node_lab1",
   "version": "1.0.0",
+  "type": "module",
   "description": "Inventory API",
   "main": "app.js",
   "engines": {

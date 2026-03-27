@@ -1,11 +1,8 @@
-const inventoryController = require('#controllers/inventory.controller');
+import inventoryController from '#controllers/inventory.controller';
 
-async function inventoryRoutes(fastify, options) {
-  // Коли приходить GET запит на /inventory -> викликаємо getItems
-  fastify.get('/inventory', inventoryController.getItems);
-
-  // Коли приходить POST запит на /inventory -> викликаємо addItem
+async function inventoryRoutes(fastify) {
+  fastify.get('/inventory', inventoryController.getList);
   fastify.post('/inventory', inventoryController.addItem);
 }
 
-module.exports = inventoryRoutes;
+export default inventoryRoutes;

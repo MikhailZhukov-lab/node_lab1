@@ -1,4 +1,4 @@
-const Ajv = require('ajv');
+import Ajv from 'ajv';
 const ajv = new Ajv();
 
 // Описуємо, як має виглядати товар (інвентар)
@@ -15,4 +15,4 @@ const itemSchema = {
 
 const validateItem = ajv.compile(itemSchema);
 
-module.exports = { validateItem };
+export { validateItem };
