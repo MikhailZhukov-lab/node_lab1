@@ -4,7 +4,9 @@ import inventoryRoutes from '#routes/inventory.routes';
 const fastify = Fastify({ logger: true });
 
 fastify.register(inventoryRoutes);
-
+fastify.get('/health', async (request, reply) => {
+  return { status: 'OK', message: 'Сервер працює відмінно!' };
+});
 const start = async () => {
   try {
     await fastify.listen({ port: 3000 });

@@ -1,7 +1,6 @@
 import Ajv from 'ajv';
 const ajv = new Ajv();
 
-// Описуємо, як має виглядати товар (інвентар)
 const itemSchema = {
   type: 'object',
   properties: {

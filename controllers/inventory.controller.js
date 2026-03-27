@@ -23,4 +23,31 @@ const addItem = async (request, reply) => {
   return reply.status(201).send(newItem);
 };
 
-export default { getList, addItem };
+const updateItem = async (request, reply) => {
+  const itemId = parseInt(request.params.id); // Отримуємо ID з URL
+  const index = inventory.findIndex((item) => item.id === itemId);
+
+  if (index === -1) {
+    return reply.status(404).send({ error: 'Товар не знайдено' });
+  }
+
+  inventory[index] = { ...inventory[index], ...request.body };
+  
+  return reply.status(200).send(inventory[index]);
+};
+const removeItem = async (request, reply) => {
+  const itemId = parseInt(request.params.id); // Отримуємо ID з URL
+  const index = inventory.findIndex((item) => item.id === itemId);
+
+  if (index === -1) {
+    return reply.status(404).send({ error: 'Товар не знайдено' });
+  }
+
+  const deletedItem = inventory.splice(index, 1)[0];
+  
+  return reply.status(200).send({ 
+    message: 'Товар успішно видалено', 
+    item: deletedItem 
+  });
+};
+export default { getList, addItem, updateItem, removeItem };
