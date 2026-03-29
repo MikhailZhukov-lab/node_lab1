@@ -14,6 +14,14 @@ export default [
       },
     },
     rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'process',
+          property: 'env',
+          message: 'Use validated Fastify config instead of process.env.',
+        },
+      ],
       'no-unused-vars': 'off',
       'no-undef': 'off',
     },
