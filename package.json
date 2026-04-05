@@ -10,11 +10,17 @@
   "imports": {
     "#constants/*": "./constants/*.js",
     "#controllers/*": "./controllers/*.js",
+    "#models/*": "./src/models/*.js",
+    "#repositories/*": "./repositories/*.js",
     "#routes/*": "./routes/*.js",
     "#schemas/*": "./schemas/*.js",
-    "#utils/*": "./utils/*.js"
+    "#services/*": "./services/*.js",
+    "#utils/*": "./utils/*.js",
+    "#utils/migrate": "./src/migrations/migrate.js"
   },
   "scripts": {
+    "seed": "node src/scripts/seed.js",
+    "migrate": "node src/migrations/migrate.js",
     "start": "node app.js",
     "dev": "node --watch app.js",
     "lint": "eslint .",
@@ -25,10 +31,16 @@
     "predev": "npm run check"
   },
   "dependencies": {
+    "@fastify/ajv-compiler": "^4.0.5",
     "@fastify/cors": "^11.2.0",
     "@fastify/env": "^6.0.0",
     "@fastify/helmet": "^13.0.2",
+    "@fastify/multipart": "^9.0.0",
     "@fastify/sensible": "^6.0.4",
+    "@fastify/static": "^8.0.0",
+    "ajv": "^8.18.0",
+    "csv-parse": "^5.5.0",
+    "csv-stringify": "^6.7.0",
     "fastify": "^5.8.4"
   },
   "devDependencies": {

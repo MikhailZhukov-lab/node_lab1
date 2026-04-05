@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Imported Item 1",
+    "quantity": 50,
+    "price": 75,
+    "category": "imported"
+  },
+  {
+    "name": "Imported Item 2",
+    "quantity": 30,
+    "price": 150,
+    "category": "imported"
+  }
+]

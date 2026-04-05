@@ -1,11 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { env as runtimeEnv } from 'node:process';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseEnv } from 'node:util';
+import fastifyMultipart from '@fastify/multipart';
 import fastifyCors from '@fastify/cors';
 import fastifyEnv from '@fastify/env';
 import fastifyHelmet from '@fastify/helmet';
 import fastifySensible from '@fastify/sensible';
+import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { ERROR_MESSAGES } from '#constants/error-messages';
 import inventoryRoutes from '#routes/inventory.routes';
@@ -14,6 +16,9 @@ import {
   healthDetailsSchema,
   healthPublicSchema,
 } from '#schemas/health.schema';
+import inventoryService from '#services/inventory.service';
+import { createBackup } from '#utils/backup';
+import { checkModelVersion } from '#utils/migrate';
 
 function resolveNodeEnv() {
   try {
@@ -137,6 +142,12 @@ function buildApp() {
     dotenv: true,
   });
 
+  fastify.register(fastifyMultipart);
+
+  fastify.register(fastifyStatic, {
+    root: fileURLToPath(new URL('./uploads/', import.meta.url)),
+  });
+
   fastify.register(fastifyCors, (instance) =>
     buildCorsOptions(instance.config)
   );
@@ -252,6 +263,17 @@ async function start() {
   registerProcessHandlers();
 
   try {
+    await inventoryService.initializeInventoryStorage();
+    const backupPath = await createBackup();
+    fastify.log.info({ backupPath }, 'Backup created on startup');
+
+    const needsMigration = await checkModelVersion();
+    if (needsMigration) {
+      fastify.log.warn(
+        'Data schema changed. Run "npm run migrate" to update existing files.'
+      );
+    }
+
     await fastify.ready();
 
     await fastify.listen({

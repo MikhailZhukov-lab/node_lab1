@@ -5,8 +5,24 @@ const inventoryItemSchema = {
     name: { type: 'string', minLength: 2 },
     quantity: { type: 'integer', minimum: 0 },
     price: { type: 'number', minimum: 0 },
+    category: { type: 'string' },
+    image: { type: ['string', 'null'] },
   },
-  required: ['id', 'name', 'quantity', 'price'],
+  required: ['id', 'name', 'quantity', 'price', 'category'],
+  additionalProperties: false,
+};
+
+const inventoryItemImportSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'integer', minimum: 1 },
+    name: { type: 'string', minLength: 2 },
+    quantity: { type: 'integer', minimum: 0 },
+    price: { type: 'number', minimum: 0 },
+    category: { type: 'string' },
+    image: { type: ['string', 'null'] },
+  },
+  required: ['name', 'quantity', 'price', 'category'],
   additionalProperties: false,
 };
 
@@ -16,8 +32,10 @@ const inventoryItemCreateBodySchema = {
     name: { type: 'string', minLength: 2 },
     quantity: { type: 'integer', minimum: 0 },
     price: { type: 'number', minimum: 0 },
+    category: { type: 'string' },
+    image: { type: ['string', 'null'] },
   },
-  required: ['name', 'quantity', 'price'],
+  required: ['name', 'quantity', 'price', 'category'],
   additionalProperties: false,
 };
 
@@ -27,6 +45,8 @@ const inventoryItemUpdateBodySchema = {
     name: { type: 'string', minLength: 2 },
     quantity: { type: 'integer', minimum: 0 },
     price: { type: 'number', minimum: 0 },
+    category: { type: 'string' },
+    image: { type: ['string', 'null'] },
   },
   minProperties: 1,
   additionalProperties: false,
@@ -43,7 +63,9 @@ const inventoryParamsSchema = {
 
 const inventoryListQuerySchema = {
   type: 'object',
-  properties: {},
+  properties: {
+    category: { type: 'string', minLength: 1 },
+  },
   additionalProperties: false,
 };
 
@@ -79,7 +101,6 @@ const getInventoryListSchema = {
 };
 
 const createInventorySchema = {
-  querystring: inventoryListQuerySchema,
   body: inventoryItemCreateBodySchema,
   response: {
     201: inventoryItemSchema,
@@ -88,7 +109,6 @@ const createInventorySchema = {
 
 const updateInventorySchema = {
   params: inventoryParamsSchema,
-  querystring: inventoryListQuerySchema,
   body: inventoryItemUpdateBodySchema,
   response: {
     200: inventoryItemSchema,
@@ -98,7 +118,6 @@ const updateInventorySchema = {
 
 const deleteInventorySchema = {
   params: inventoryParamsSchema,
-  querystring: inventoryListQuerySchema,
   response: {
     200: inventoryDeleteResponseSchema,
     404: inventoryErrorSchema,
@@ -109,6 +128,8 @@ export {
   createInventorySchema,
   deleteInventorySchema,
   getInventoryListSchema,
+  inventoryItemImportSchema,
   inventoryItemSchema,
+  inventoryParamsSchema,
   updateInventorySchema,
 };
