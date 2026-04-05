@@ -3,6 +3,6 @@
   "name": "Laptop",
   "quantity": 5,
   "price": 1200,
-  "category": "",
+  "category": "electronics",
   "image": null
 }
