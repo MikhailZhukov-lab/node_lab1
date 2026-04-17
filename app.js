@@ -131,6 +131,29 @@ function buildHealthDetails() {
   };
 }
 
+async function apiRoutes(fastify) {
+  await fastify.register(inventoryRoutes);
+
+  fastify.get('/health', { schema: healthPublicSchema }, async () => ({
+    status: 'ok',
+  }));
+
+  fastify.get(
+    '/health/details',
+    {
+      schema: healthDetailsSchema,
+      onRequest: async (request, reply) => {
+        const apiKey = request.headers['x-api-key'];
+
+        if (apiKey !== fastify.config.ADMIN_API_KEY) {
+          return reply.unauthorized(ERROR_MESSAGES.UNAUTHORIZED);
+        }
+      },
+    },
+    async () => buildHealthDetails()
+  );
+}
+
 function buildApp() {
   const fastify = Fastify({
     logger: buildLoggerOptions(),
@@ -153,26 +176,7 @@ function buildApp() {
   );
   fastify.register(fastifyHelmet, { global: true });
   fastify.register(fastifySensible);
-  fastify.register(inventoryRoutes);
-
-  fastify.get('/health', { schema: healthPublicSchema }, async () => ({
-    status: 'ok',
-  }));
-
-  fastify.get(
-    '/health/details',
-    {
-      schema: healthDetailsSchema,
-      onRequest: async (request, reply) => {
-        const apiKey = request.headers['x-api-key'];
-
-        if (apiKey !== fastify.config.ADMIN_API_KEY) {
-          return reply.unauthorized(ERROR_MESSAGES.UNAUTHORIZED);
-        }
-      },
-    },
-    async () => buildHealthDetails()
-  );
+  fastify.register(apiRoutes, { prefix: '/api/v1' });
 
   fastify.setErrorHandler((error, request, reply) => {
     const statusCode =

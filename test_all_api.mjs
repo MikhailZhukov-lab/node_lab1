@@ -22,27 +22,27 @@ function makeRequest(options, body = null) {
 }
 
 async function test() {
-  console.log('\n=== GET /inventory ===');
+  console.log('\n=== GET /api/v1/inventory ===');
   const getAll = await makeRequest({
     hostname: '127.0.0.1',
     port: 3000,
-    path: '/inventory',
+    path: '/api/v1/inventory',
     method: 'GET',
   });
   console.log('Status:', getAll.status);
   console.log('Data:', JSON.stringify(getAll.data, null, 2));
 
-  console.log('\n=== GET /inventory?category=electronics ===');
+  console.log('\n=== GET /api/v1/inventory?category=electronics ===');
   const getFiltered = await makeRequest({
     hostname: '127.0.0.1',
     port: 3000,
-    path: '/inventory?category=electronics',
+    path: '/api/v1/inventory?category=electronics',
     method: 'GET',
   });
   console.log('Status:', getFiltered.status);
   console.log('Data:', JSON.stringify(getFiltered.data, null, 2));
 
-  console.log('\n=== POST /inventory ===');
+  console.log('\n=== POST /api/v1/inventory ===');
   const postBody = JSON.stringify({
     name: 'Keyboard',
     quantity: 10,
@@ -53,7 +53,7 @@ async function test() {
     {
       hostname: '127.0.0.1',
       port: 3000,
-      path: '/inventory',
+      path: '/api/v1/inventory',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,13 +65,13 @@ async function test() {
   console.log('Status:', postItem.status);
   console.log('Data:', JSON.stringify(postItem.data, null, 2));
 
-  console.log('\n=== PATCH /inventory/1 ===');
+  console.log('\n=== PATCH /api/v1/inventory/1 ===');
   const patchBody = JSON.stringify({ price: 1300 });
   const patchItem = await makeRequest(
     {
       hostname: '127.0.0.1',
       port: 3000,
-      path: '/inventory/1',
+      path: '/api/v1/inventory/1',
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -83,11 +83,11 @@ async function test() {
   console.log('Status:', patchItem.status);
   console.log('Data:', JSON.stringify(patchItem.data, null, 2));
 
-  console.log('\n=== GET /items/export ===');
+  console.log('\n=== GET /api/v1/items/export ===');
   const exportItems = await makeRequest({
     hostname: '127.0.0.1',
     port: 3000,
-    path: '/items/export',
+    path: '/api/v1/items/export',
     method: 'GET',
   });
   console.log('Status:', exportItems.status);

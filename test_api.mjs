@@ -59,12 +59,12 @@ function getJson(url) {
 }
 
 async function test() {
-  console.log('=== GET /inventory ===');
-  console.log(await getJson('http://127.0.0.1:3000/inventory'));
+  console.log('=== GET /api/v1/inventory ===');
+  console.log(await getJson('http://127.0.0.1:3000/api/v1/inventory'));
 
-  console.log('\n=== POST /inventory ===');
+  console.log('\n=== POST /api/v1/inventory ===');
   console.log(
-    await postJson('http://127.0.0.1:3000/inventory', {
+    await postJson('http://127.0.0.1:3000/api/v1/inventory', {
       name: 'Keyboard',
       quantity: 10,
       price: 50,
@@ -72,12 +72,12 @@ async function test() {
     })
   );
 
-  console.log('\n=== GET /inventory (after POST) ===');
-  console.log(await getJson('http://127.0.0.1:3000/inventory'));
+  console.log('\n=== GET /api/v1/inventory (after POST) ===');
+  console.log(await getJson('http://127.0.0.1:3000/api/v1/inventory'));
 
-  console.log('\n=== GET /inventory with category=electronics filter ===');
+  console.log('\n=== GET /api/v1/inventory with category=electronics filter ===');
   console.log(
-    await getJson('http://127.0.0.1:3000/inventory?category=electronics')
+    await getJson('http://127.0.0.1:3000/api/v1/inventory?category=electronics')
   );
 }
 

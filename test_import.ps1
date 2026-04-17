@@ -11,7 +11,7 @@ $byteContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue
 $content.Add($byteContent, "file", "test_import.json")
 
 try {
-    $result = $client.PostAsync("http://127.0.0.1:3000/items/import", $content).GetAwaiter().GetResult()
+    $result = $client.PostAsync("http://127.0.0.1:3000/api/v1/items/import", $content).GetAwaiter().GetResult()
     Write-Host $result.StatusCode
     Write-Host $result.Content.ReadAsStringAsync().GetAwaiter().GetResult()
 } catch {
