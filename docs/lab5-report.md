@@ -6,18 +6,18 @@ Examples below can be used in Postman, Bruno, Insomnia, or `curl`.
 
 ```bash
 curl "http://127.0.0.1:3000/inventory?category=electronics"
-curl "http://127.0.0.1:3000/items?category=electronics"
-curl -X POST "http://127.0.0.1:3000/items" \
+curl "http://127.0.0.1:3000/inventory?category=electronics"
+curl -X POST "http://127.0.0.1:3000/inventory" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Keyboard\",\"quantity\":10,\"price\":50,\"category\":\"electronics\"}"
-curl -X PATCH "http://127.0.0.1:3000/items/1" \
+curl -X PATCH "http://127.0.0.1:3000/inventory/1" \
   -H "Content-Type: application/json" \
   -d "{\"price\":1299}"
-curl -X DELETE "http://127.0.0.1:3000/items/3"
-curl -OJ "http://127.0.0.1:3000/items/export"
-curl -X POST "http://127.0.0.1:3000/items/import" \
+curl -X DELETE "http://127.0.0.1:3000/inventory/3"
+curl -OJ "http://127.0.0.1:3000/inventory/export"
+curl -X POST "http://127.0.0.1:3000/inventory/import" \
   -F "file=@test_import.csv"
-curl -X POST "http://127.0.0.1:3000/items/1/image" \
+curl -X POST "http://127.0.0.1:3000/inventory/1/image" \
   -F "file=@test_image.png"
 ```
 

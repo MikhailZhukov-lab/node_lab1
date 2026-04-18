@@ -90,6 +90,28 @@ const inventoryErrorSchema = {
   additionalProperties: false,
 };
 
+const inventoryImportResponseSchema = {
+  type: 'object',
+  properties: {
+    imported: { type: 'integer', minimum: 0 },
+    rejected: { type: 'integer', minimum: 0 },
+    rejectedRecords: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          line: { type: 'integer', minimum: 1 },
+          reason: { type: 'string' },
+        },
+        required: ['line', 'reason'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['imported', 'rejected', 'rejectedRecords'],
+  additionalProperties: false,
+};
+
 const inventoryDeleteResponseSchema = {
   type: 'object',
   properties: {
@@ -117,6 +139,8 @@ const inventoryPaginatedListResponseSchema = {
 };
 
 const getInventoryListSchema = {
+  summary: 'Get inventory items',
+  tags: ['Inventory v1'],
   querystring: inventoryListQuerySchema,
   response: {
     200: {
@@ -127,6 +151,8 @@ const getInventoryListSchema = {
 };
 
 const getInventoryPaginatedListSchema = {
+  summary: 'Get paginated inventory items',
+  tags: ['Inventory v2'],
   querystring: inventoryPaginatedListQuerySchema,
   response: {
     200: inventoryPaginatedListResponseSchema,
@@ -134,6 +160,8 @@ const getInventoryPaginatedListSchema = {
 };
 
 const createInventorySchema = {
+  summary: 'Create inventory item',
+  tags: ['Inventory v1'],
   body: inventoryItemCreateBodySchema,
   response: {
     201: inventoryItemSchema,
@@ -141,6 +169,8 @@ const createInventorySchema = {
 };
 
 const updateInventorySchema = {
+  summary: 'Update inventory item',
+  tags: ['Inventory v1'],
   params: inventoryParamsSchema,
   body: inventoryItemUpdateBodySchema,
   response: {
@@ -150,6 +180,8 @@ const updateInventorySchema = {
 };
 
 const deleteInventorySchema = {
+  summary: 'Delete inventory item',
+  tags: ['Inventory v1'],
   params: inventoryParamsSchema,
   response: {
     200: inventoryDeleteResponseSchema,
@@ -157,13 +189,48 @@ const deleteInventorySchema = {
   },
 };
 
+const exportInventorySchema = {
+  summary: 'Export inventory items to CSV',
+  tags: ['Inventory v1'],
+  response: {
+    200: {
+      type: 'string',
+    },
+  },
+};
+
+const importInventorySchema = {
+  summary: 'Import inventory items from CSV or JSON',
+  tags: ['Inventory v1'],
+  consumes: ['multipart/form-data'],
+  response: {
+    200: inventoryImportResponseSchema,
+    400: inventoryErrorSchema,
+  },
+};
+
+const uploadInventoryImageSchema = {
+  summary: 'Upload image for inventory item',
+  tags: ['Inventory v1'],
+  consumes: ['multipart/form-data'],
+  params: inventoryParamsSchema,
+  response: {
+    200: inventoryItemSchema,
+    400: inventoryErrorSchema,
+    404: inventoryErrorSchema,
+  },
+};
+
 export {
   createInventorySchema,
   deleteInventorySchema,
+  exportInventorySchema,
   getInventoryListSchema,
   getInventoryPaginatedListSchema,
+  importInventorySchema,
   inventoryItemImportSchema,
   inventoryItemSchema,
   inventoryParamsSchema,
+  uploadInventoryImageSchema,
   updateInventorySchema,
 };

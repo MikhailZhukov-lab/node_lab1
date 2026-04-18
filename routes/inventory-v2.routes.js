@@ -3,7 +3,7 @@ import { getInventoryPaginatedListSchema } from '#schemas/inventory.schema';
 
 async function inventoryV2Routes(fastify) {
   fastify.get(
-    '/items',
+    '/inventory',
     { schema: getInventoryPaginatedListSchema },
     inventoryController.getPaginatedList
   );

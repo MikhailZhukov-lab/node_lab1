@@ -9,6 +9,7 @@ import fastifyEnv from '@fastify/env';
 import fastifyHelmet from '@fastify/helmet';
 import fastifySensible from '@fastify/sensible';
 import fastifyStatic from '@fastify/static';
+import fastifySwagger from '@fastify/swagger';
 import Fastify from 'fastify';
 import { ERROR_MESSAGES } from '#constants/error-messages';
 import inventoryRoutes from '#routes/inventory.routes';
@@ -144,14 +145,28 @@ function buildHealthDetails() {
 async function apiRoutes(fastify) {
   await fastify.register(inventoryRoutes);
 
-  fastify.get('/health', { schema: healthPublicSchema }, async () => ({
-    status: 'ok',
-  }));
+  fastify.get(
+    '/health',
+    {
+      schema: {
+        ...healthPublicSchema,
+        summary: 'Public health check',
+        tags: ['Health'],
+      },
+    },
+    async () => ({
+      status: 'ok',
+    })
+  );
 
   fastify.get(
     '/health/details',
     {
-      schema: healthDetailsSchema,
+      schema: {
+        ...healthDetailsSchema,
+        summary: 'Detailed health check',
+        tags: ['Health'],
+      },
       onRequest: async (request, reply) => {
         const apiKey = request.headers['x-api-key'];
 
@@ -179,6 +194,21 @@ function buildApp() {
     dotenv: true,
   });
 
+  fastify.register(fastifySwagger, {
+    openapi: {
+      info: {
+        title: 'Inventory API',
+        description: 'API documentation for the laboratory project',
+        version: '1.0.0',
+      },
+      tags: [
+        { name: 'Inventory v1', description: 'Version 1 inventory endpoints' },
+        { name: 'Inventory v2', description: 'Version 2 inventory endpoints' },
+        { name: 'Health', description: 'Health check endpoints' },
+      ],
+    },
+  });
+
   fastify.register(fastifyRateLimit, {
     global: true,
     max: 100,
@@ -196,7 +226,60 @@ function buildApp() {
 
   fastify.register(fastifyStatic, {
     root: fileURLToPath(new URL('./uploads/', import.meta.url)),
+    serve: false,
   });
+
+  fastify.register(fastifyStatic, {
+    root: fileURLToPath(
+      new URL('./node_modules/@fastify/swagger-ui/static/', import.meta.url)
+    ),
+    prefix: '/docs/static/',
+    decorateReply: false,
+  });
+
+  fastify.get('/:itemId/:fileName', async (request, reply) => {
+    const { itemId, fileName } = request.params;
+
+    return reply.sendFile(`${itemId}/${fileName}`);
+  });
+
+  fastify.get('/docs', async (_request, reply) => {
+    return reply.type('text/html; charset=utf-8').send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href="/docs/static/swagger-ui.css" />
+    <link rel="stylesheet" type="text/css" href="/docs/static/index.css" />
+    <link rel="icon" type="image/png" href="/docs/static/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/docs/static/favicon-16x16.png" sizes="16x16" />
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="/docs/static/swagger-ui-bundle.js" charset="UTF-8"></script>
+    <script src="/docs/static/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
+    <script src="/docs/static/swagger-initializer.js" charset="UTF-8"></script>
+  </body>
+</html>`);
+  });
+
+  fastify.get('/docs/json', async () => fastify.swagger());
+
+  fastify.get(
+    '/docs/static/swagger-initializer.js',
+    async (_request, reply) => {
+      return reply.type('application/javascript; charset=utf-8')
+        .send(`window.onload = function () {
+  window.ui = SwaggerUIBundle({
+    url: '/docs/json',
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+    layout: 'StandaloneLayout'
+  });
+};`);
+    }
+  );
 
   fastify.register(fastifyCors, (instance) =>
     buildCorsOptions(instance.config)

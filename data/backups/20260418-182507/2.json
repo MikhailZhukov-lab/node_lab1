@@ -4,6 +4,6 @@
   "quantity": 15,
   "price": 25,
   "category": "accessories",
-  "image": null,
+  "image": "/2/image.png",
   "discount": 0
 }

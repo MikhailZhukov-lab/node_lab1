@@ -83,11 +83,11 @@ async function test() {
   console.log('Status:', patchItem.status);
   console.log('Data:', JSON.stringify(patchItem.data, null, 2));
 
-  console.log('\n=== GET /api/v1/items/export ===');
+  console.log('\n=== GET /api/v1/inventory/export ===');
   const exportItems = await makeRequest({
     hostname: '127.0.0.1',
     port: 3000,
-    path: '/api/v1/items/export',
+    path: '/api/v1/inventory/export',
     method: 'GET',
   });
   console.log('Status:', exportItems.status);

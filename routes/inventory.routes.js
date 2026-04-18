@@ -2,8 +2,10 @@ import inventoryController from '#controllers/inventory.controller';
 import {
   createInventorySchema,
   deleteInventorySchema,
+  exportInventorySchema,
   getInventoryListSchema,
-  inventoryParamsSchema,
+  importInventorySchema,
+  uploadInventoryImageSchema,
   updateInventorySchema,
 } from '#schemas/inventory.schema';
 
@@ -14,29 +16,22 @@ async function inventoryRoutes(fastify) {
     inventoryController.getList
   );
   fastify.get(
-    '/items',
-    { schema: getInventoryListSchema },
-    inventoryController.getList
+    '/inventory/export',
+    { schema: exportInventorySchema },
+    inventoryController.exportItems
   );
-  fastify.get('/items/export', inventoryController.exportItems);
-  fastify.post('/items/import', inventoryController.importItems);
+  fastify.post(
+    '/inventory/import',
+    { schema: importInventorySchema },
+    inventoryController.importItems
+  );
   fastify.post(
     '/inventory',
     { schema: createInventorySchema },
     inventoryController.addItem
   );
-  fastify.post(
-    '/items',
-    { schema: createInventorySchema },
-    inventoryController.addItem
-  );
   fastify.patch(
     '/inventory/:id',
-    { schema: updateInventorySchema },
-    inventoryController.updateItem
-  );
-  fastify.patch(
-    '/items/:id',
     { schema: updateInventorySchema },
     inventoryController.updateItem
   );
@@ -45,17 +40,10 @@ async function inventoryRoutes(fastify) {
     { schema: deleteInventorySchema },
     inventoryController.removeItem
   );
-  fastify.delete(
-    '/items/:id',
-    { schema: deleteInventorySchema },
-    inventoryController.removeItem
-  );
   fastify.post(
-    '/items/:id/image',
+    '/inventory/:id/image',
     {
-      schema: {
-        params: inventoryParamsSchema,
-      },
+      schema: uploadInventoryImageSchema,
     },
     inventoryController.uploadImage
   );
