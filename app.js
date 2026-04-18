@@ -3,6 +3,7 @@ import { env as runtimeEnv } from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseEnv } from 'node:util';
 import fastifyMultipart from '@fastify/multipart';
+import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyCors from '@fastify/cors';
 import fastifyEnv from '@fastify/env';
 import fastifyHelmet from '@fastify/helmet';
@@ -111,6 +112,14 @@ function sendErrorResponse(reply, error, statusCode) {
     return reply.notFound(error.message || ERROR_MESSAGES.NOT_FOUND);
   }
 
+  if (statusCode === 429) {
+    return reply.status(429).send({
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: error.message || 'Too Many Requests',
+    });
+  }
+
   if (statusCode >= 500) {
     return reply.internalServerError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
   }
@@ -168,6 +177,19 @@ function buildApp() {
     confKey: 'config',
     schema: envSchema,
     dotenv: true,
+  });
+
+  fastify.register(fastifyRateLimit, {
+    global: true,
+    max: 100,
+    timeWindow: '1 minute',
+    errorResponseBuilder(_request, context) {
+      return {
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: `Rate limit exceeded. Retry in ${context.after}.`,
+      };
+    },
   });
 
   fastify.register(fastifyMultipart);
