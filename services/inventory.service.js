@@ -1,4 +1,5 @@
 import inventoryRepository from '#repositories/inventory.repository';
+import { getItemDetailsWithReference } from '#utils/reference-data';
 
 const getList = async (query = {}) => {
   const items = await inventoryRepository.findAll();
@@ -32,6 +33,16 @@ const getPaginatedList = async (query = {}) => {
 
 const getById = async (id) => inventoryRepository.findById(id);
 
+const getDetailsById = async (id) => {
+  const item = await inventoryRepository.findById(id);
+
+  if (!item) {
+    return null;
+  }
+
+  return getItemDetailsWithReference(item);
+};
+
 const addItem = async (payload) => inventoryRepository.create(payload);
 
 const updateItem = async (id, payload) =>
@@ -43,6 +54,7 @@ const initializeInventoryStorage = async () => inventoryRepository.initialize();
 
 export default {
   addItem,
+  getDetailsById,
   getById,
   getList,
   getPaginatedList,

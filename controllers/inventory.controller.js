@@ -67,6 +67,17 @@ const getPaginatedList = async (request, reply) => {
   });
 };
 
+const getItemDetails = async (request, reply) => {
+  const itemId = Number.parseInt(request.params.id, 10);
+  const itemDetails = await inventoryService.getDetailsById(itemId);
+
+  if (!itemDetails) {
+    return reply.notFound(ERROR_MESSAGES.INVENTORY_ITEM_NOT_FOUND);
+  }
+
+  return reply.send(buildItemWithImageUrl(request, itemDetails));
+};
+
 const addItem = async (request, reply) => {
   const newItem = await inventoryService.addItem(request.body);
   return reply.status(201).send(buildItemWithImageUrl(request, newItem));
@@ -260,12 +271,13 @@ const importItems = async (request, reply) => {
 };
 
 export default {
+  addItem,
+  exportItems,
+  getItemDetails,
   getList,
   getPaginatedList,
-  addItem,
-  updateItem,
-  removeItem,
-  exportItems,
   importItems,
+  removeItem,
+  updateItem,
   uploadImage,
 };

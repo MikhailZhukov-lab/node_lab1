@@ -3,6 +3,7 @@ import {
   createInventorySchema,
   deleteInventorySchema,
   exportInventorySchema,
+  getInventoryDetailsSchema,
   getInventoryListSchema,
   importInventorySchema,
   uploadInventoryImageSchema,
@@ -29,6 +30,21 @@ async function inventoryRoutes(fastify) {
     '/inventory',
     { schema: createInventorySchema },
     inventoryController.addItem
+  );
+  fastify.get(
+    '/inventory/:id/details',
+    { schema: getInventoryDetailsSchema },
+    inventoryController.getItemDetails
+  );
+  fastify.get(
+    '/items/:id/details',
+    {
+      schema: {
+        ...getInventoryDetailsSchema,
+        hide: true,
+      },
+    },
+    inventoryController.getItemDetails
   );
   fastify.patch(
     '/inventory/:id',

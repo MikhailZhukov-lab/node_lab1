@@ -12,6 +12,29 @@ const inventoryItemSchema = {
   additionalProperties: false,
 };
 
+const inventoryItemDetailsSchema = {
+  type: 'object',
+  properties: {
+    ...inventoryItemSchema.properties,
+    externalCategoryId: {
+      anyOf: [{ type: 'integer', minimum: 1 }, { type: 'null' }],
+    },
+    externalCategoryName: {
+      anyOf: [{ type: 'string' }, { type: 'null' }],
+    },
+    tax: {
+      anyOf: [{ type: 'number' }, { type: 'null' }],
+    },
+  },
+  required: [
+    ...inventoryItemSchema.required,
+    'externalCategoryId',
+    'externalCategoryName',
+    'tax',
+  ],
+  additionalProperties: false,
+};
+
 const inventoryItemImportSchema = {
   type: 'object',
   properties: {
@@ -189,6 +212,16 @@ const deleteInventorySchema = {
   },
 };
 
+const getInventoryDetailsSchema = {
+  summary: 'Get inventory item details with external reference data',
+  tags: ['Inventory v1'],
+  params: inventoryParamsSchema,
+  response: {
+    200: inventoryItemDetailsSchema,
+    404: inventoryErrorSchema,
+  },
+};
+
 const exportInventorySchema = {
   summary: 'Export inventory items to CSV',
   tags: ['Inventory v1'],
@@ -225,10 +258,12 @@ export {
   createInventorySchema,
   deleteInventorySchema,
   exportInventorySchema,
+  getInventoryDetailsSchema,
   getInventoryListSchema,
   getInventoryPaginatedListSchema,
   importInventorySchema,
   inventoryItemImportSchema,
+  inventoryItemDetailsSchema,
   inventoryItemSchema,
   inventoryParamsSchema,
   uploadInventoryImageSchema,
