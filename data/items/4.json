@@ -1,8 +1,9 @@
 {
-  "id": 3,
+  "id": 4,
   "name": "Keyboard",
   "quantity": 10,
   "price": 50,
   "category": "electronics",
-  "image": null
+  "image": null,
+  "discount": 0
 }

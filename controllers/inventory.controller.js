@@ -4,9 +4,7 @@ import { rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ERROR_MESSAGES } from '#constants/error-messages';
-import {
-  inventoryItemImportSchema,
-} from '#schemas/inventory.schema';
+import { inventoryItemImportSchema } from '#schemas/inventory.schema';
 import inventoryService from '#services/inventory.service';
 import {
   buildImageUrl,
@@ -25,7 +23,9 @@ const maxImageFileSize = 5 * 1024 * 1024;
 
 function normalizeImportedItem(record) {
   const quantity =
-    record.quantity === undefined || record.quantity === null || record.quantity === ''
+    record.quantity === undefined ||
+    record.quantity === null ||
+    record.quantity === ''
       ? undefined
       : Number.parseInt(record.quantity, 10);
   const price =
@@ -53,6 +53,18 @@ function normalizeImportedItem(record) {
 const getList = async (request, reply) => {
   const items = await inventoryService.getList(request.query);
   return reply.send(buildItemsWithImageUrl(request, items));
+};
+
+const getPaginatedList = async (request, reply) => {
+  const result = await inventoryService.getPaginatedList(request.query);
+
+  return reply.send({
+    data: buildItemsWithImageUrl(request, result.data),
+    limit: result.limit,
+    page: result.page,
+    total: result.total,
+    totalPages: result.totalPages,
+  });
 };
 
 const addItem = async (request, reply) => {
@@ -144,7 +156,10 @@ const uploadImage = async (request, reply) => {
     return reply.badRequest('File too large. Maximum size is 5MB');
   }
 
-  await rm(getItemUploadDirectoryPath(itemId), { recursive: true, force: true });
+  await rm(getItemUploadDirectoryPath(itemId), {
+    recursive: true,
+    force: true,
+  });
   await ensureItemUploadDirectory(itemId);
 
   const imagePath = getItemImagePath(itemId, data.mimetype);
@@ -246,6 +261,7 @@ const importItems = async (request, reply) => {
 
 export default {
   getList,
+  getPaginatedList,
   addItem,
   updateItem,
   removeItem,

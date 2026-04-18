@@ -75,7 +75,9 @@ async function test() {
   console.log('\n=== GET /api/v1/inventory (after POST) ===');
   console.log(await getJson('http://127.0.0.1:3000/api/v1/inventory'));
 
-  console.log('\n=== GET /api/v1/inventory with category=electronics filter ===');
+  console.log(
+    '\n=== GET /api/v1/inventory with category=electronics filter ==='
+  );
   console.log(
     await getJson('http://127.0.0.1:3000/api/v1/inventory?category=electronics')
   );

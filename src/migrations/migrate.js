@@ -69,7 +69,9 @@ async function migrate() {
 
   for (const fileName of itemFileNames) {
     const itemId = Number.parseInt(fileName, 10);
-    const storedItem = await readJsonFile(join(projectRoot, 'data', 'items', fileName));
+    const storedItem = await readJsonFile(
+      join(projectRoot, 'data', 'items', fileName)
+    );
     const { changed, item } = applyModelDefaults(storedItem);
 
     if (changed) {

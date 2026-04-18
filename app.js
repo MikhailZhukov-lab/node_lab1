@@ -11,6 +11,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { ERROR_MESSAGES } from '#constants/error-messages';
 import inventoryRoutes from '#routes/inventory.routes';
+import inventoryV2Routes from '#routes/inventory-v2.routes';
 import envSchema from '#schemas/env.schema';
 import {
   healthDetailsSchema,
@@ -154,6 +155,10 @@ async function apiRoutes(fastify) {
   );
 }
 
+async function apiV2Routes(fastify) {
+  await fastify.register(inventoryV2Routes);
+}
+
 function buildApp() {
   const fastify = Fastify({
     logger: buildLoggerOptions(),
@@ -177,6 +182,7 @@ function buildApp() {
   fastify.register(fastifyHelmet, { global: true });
   fastify.register(fastifySensible);
   fastify.register(apiRoutes, { prefix: '/api/v1' });
+  fastify.register(apiV2Routes, { prefix: '/api/v2' });
 
   fastify.setErrorHandler((error, request, reply) => {
     const statusCode =

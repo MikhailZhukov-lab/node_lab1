@@ -5,6 +5,7 @@ const itemModel = Object.freeze({
   price: 0,
   category: '',
   image: null,
+  discount: 0,
 });
 
 export default itemModel;

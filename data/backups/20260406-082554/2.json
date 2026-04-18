@@ -3,6 +3,7 @@
   "name": "Mouse",
   "quantity": 15,
   "price": 25,
-  "category": "",
-  "image": null
+  "category": "accessories",
+  "image": null,
+  "discount": 0
 }

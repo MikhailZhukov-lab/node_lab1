@@ -69,6 +69,16 @@ const inventoryListQuerySchema = {
   additionalProperties: false,
 };
 
+const inventoryPaginatedListQuerySchema = {
+  type: 'object',
+  properties: {
+    category: { type: 'string', minLength: 1 },
+    page: { type: 'integer', minimum: 1, default: 1 },
+    limit: { type: 'integer', minimum: 1, default: 10 },
+  },
+  additionalProperties: false,
+};
+
 const inventoryErrorSchema = {
   type: 'object',
   properties: {
@@ -90,6 +100,22 @@ const inventoryDeleteResponseSchema = {
   additionalProperties: false,
 };
 
+const inventoryPaginatedListResponseSchema = {
+  type: 'object',
+  properties: {
+    data: {
+      type: 'array',
+      items: inventoryItemSchema,
+    },
+    total: { type: 'integer', minimum: 0 },
+    page: { type: 'integer', minimum: 1 },
+    limit: { type: 'integer', minimum: 1 },
+    totalPages: { type: 'integer', minimum: 1 },
+  },
+  required: ['data', 'total', 'page', 'limit', 'totalPages'],
+  additionalProperties: false,
+};
+
 const getInventoryListSchema = {
   querystring: inventoryListQuerySchema,
   response: {
@@ -97,6 +123,13 @@ const getInventoryListSchema = {
       type: 'array',
       items: inventoryItemSchema,
     },
+  },
+};
+
+const getInventoryPaginatedListSchema = {
+  querystring: inventoryPaginatedListQuerySchema,
+  response: {
+    200: inventoryPaginatedListResponseSchema,
   },
 };
 
@@ -128,6 +161,7 @@ export {
   createInventorySchema,
   deleteInventorySchema,
   getInventoryListSchema,
+  getInventoryPaginatedListSchema,
   inventoryItemImportSchema,
   inventoryItemSchema,
   inventoryParamsSchema,

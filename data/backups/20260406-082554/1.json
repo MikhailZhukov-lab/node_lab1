@@ -4,5 +4,6 @@
   "quantity": 5,
   "price": 1200,
   "category": "electronics",
-  "image": null
+  "image": "/1/image.png",
+  "discount": 0
 }
