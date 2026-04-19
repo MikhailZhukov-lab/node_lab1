@@ -26,6 +26,9 @@ const envSchema = {
       type: 'string',
       minLength: 1,
     },
+    GITHUB_TOKEN: {
+      type: 'string',
+    },
   },
 };
 

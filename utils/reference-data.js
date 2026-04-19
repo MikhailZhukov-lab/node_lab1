@@ -140,7 +140,8 @@ async function getItemDetailsWithReference(item) {
     const categories = await getReferenceCategories();
     const matchedCategory = categories.find(
       (category) =>
-        normalizeCategoryName(category.name) === normalizeCategoryName(item.category)
+        normalizeCategoryName(category.name) ===
+        normalizeCategoryName(item.category)
     );
 
     return buildDetailsWithExternalFields(item, matchedCategory);
@@ -149,7 +150,4 @@ async function getItemDetailsWithReference(item) {
   }
 }
 
-export {
-  cacheFilePath,
-  getItemDetailsWithReference,
-};
+export { cacheFilePath, getItemDetailsWithReference };

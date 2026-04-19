@@ -12,6 +12,8 @@ import fastifyStatic from '@fastify/static';
 import fastifySwagger from '@fastify/swagger';
 import Fastify from 'fastify';
 import { ERROR_MESSAGES } from '#constants/error-messages';
+import githubRoutes from '#routes/github.routes';
+import githubV2Routes from '#routes/github-v2.routes';
 import inventoryRoutes from '#routes/inventory.routes';
 import inventoryV2Routes from '#routes/inventory-v2.routes';
 import envSchema from '#schemas/env.schema';
@@ -122,7 +124,11 @@ function sendErrorResponse(reply, error, statusCode) {
   }
 
   if (statusCode >= 500) {
-    return reply.internalServerError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+    return reply.status(statusCode).send({
+      statusCode,
+      error: error.name || ERROR_MESSAGES.ERROR,
+      message: error.message || ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+    });
   }
 
   return reply.status(statusCode).send({
@@ -144,6 +150,7 @@ function buildHealthDetails() {
 
 async function apiRoutes(fastify) {
   await fastify.register(inventoryRoutes);
+  await fastify.register(githubRoutes);
 
   fastify.get(
     '/health',
@@ -181,6 +188,7 @@ async function apiRoutes(fastify) {
 
 async function apiV2Routes(fastify) {
   await fastify.register(inventoryV2Routes);
+  await fastify.register(githubV2Routes);
 }
 
 function buildApp() {
@@ -204,6 +212,14 @@ function buildApp() {
       tags: [
         { name: 'Inventory v1', description: 'Version 1 inventory endpoints' },
         { name: 'Inventory v2', description: 'Version 2 inventory endpoints' },
+        {
+          name: 'GitHub v1',
+          description: 'Version 1 GitHub analytics endpoints',
+        },
+        {
+          name: 'GitHub v2',
+          description: 'Version 2 GitHub analytics endpoints',
+        },
         { name: 'Health', description: 'Health check endpoints' },
       ],
     },
