@@ -12,6 +12,7 @@ import fastifyStatic from '@fastify/static';
 import fastifySwagger from '@fastify/swagger';
 import Fastify from 'fastify';
 import { ERROR_MESSAGES } from '#constants/error-messages';
+import drizzlePlugin from '#db/drizzle';
 import mysqlPlugin from './db/mysql.js';
 import githubRoutes from '#routes/github.routes';
 import githubV2Routes from '#routes/github-v2.routes';
@@ -19,7 +20,6 @@ import { createInventoryRepository } from '#repositories/inventory.repository';
 import inventoryRoutes from '#routes/inventory.routes';
 import inventoryV2Routes from '#routes/inventory-v2.routes';
 import envSchema from '#schemas/env.schema';
-import { runMigration } from '#utils/migrate';
 import {
   healthDetailsSchema,
   healthPublicSchema,
@@ -205,6 +205,7 @@ function buildApp() {
     dotenv: true,
   });
   fastify.register(mysqlPlugin);
+  fastify.register(drizzlePlugin);
   fastify.register(async function inventoryDependenciesPlugin(instance) {
     configureInventoryService({
       inventoryRepository: createInventoryRepository(instance.db),
@@ -404,7 +405,6 @@ async function start() {
 
   try {
     await fastify.ready();
-    await runMigration({ db: fastify.db, logger: fastify.log, force: false });
     await inventoryService.initializeInventoryStorage();
 
     await fastify.listen({

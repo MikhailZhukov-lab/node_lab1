@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1777728729654,
+      "tag": "0000_young_manta",
+      "breakpoints": true
+    }
+  ]
+}

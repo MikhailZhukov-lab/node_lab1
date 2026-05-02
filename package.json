@@ -8,6 +8,7 @@
     "node": ">=20.0.0"
   },
   "imports": {
+    "#db/*": "./db/*.js",
     "#constants/*": "./constants/*.js",
     "#controllers/*": "./controllers/*.js",
     "#models/*": "./src/models/*.js",
@@ -15,13 +16,13 @@
     "#routes/*": "./routes/*.js",
     "#schemas/*": "./schemas/*.js",
     "#services/*": "./services/*.js",
-    "#utils/*": "./utils/*.js",
-    "#utils/migrate": "./src/migrations/migrate.js"
+    "#utils/*": "./utils/*.js"
   },
   "scripts": {
     "seed": "node src/scripts/seed.js",
     "seed:force": "node src/scripts/seed.js --force",
-    "migrate": "node src/migrations/migrate.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "start": "node app.js",
     "dev": "node --watch app.js",
     "external": "json-server db.json --port 3001",
@@ -46,12 +47,14 @@
     "ajv": "^8.18.0",
     "csv-parse": "^5.5.0",
     "csv-stringify": "^6.7.0",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^5.8.4",
     "fastify-plugin": "^5.1.0",
     "mysql2": "^3.22.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.0.0",
     "json-server": "^1.0.0-beta.15",
     "pino-pretty": "^13.1.3",

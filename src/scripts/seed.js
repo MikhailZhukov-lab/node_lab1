@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/mysql2';
 import mysql from 'mysql2/promise';
-import { runMigration } from '../migrations/migrate.js';
+import { inventoryItems } from '#db/schema';
 import { createInventoryRepository } from '../../repositories/inventory.repository.js';
 import itemModel from '../models/item.model.js';
 import { env as runtimeEnv } from 'node:process';
@@ -63,14 +65,11 @@ async function seed({ force = false } = {}) {
   console.log('Starting database seeding...');
 
   const pool = await createPool();
+  const db = drizzle({ client: pool });
 
   try {
-    await runMigration({ db: pool, logger: console, force });
-
-    const [rows] = await pool.query(
-      'SELECT COUNT(*) AS total FROM inventory_items'
-    );
-    const total = rows[0]?.total ?? 0;
+    const rows = await db.select({ total: sql`count(*)` }).from(inventoryItems);
+    const total = Number(rows[0]?.total ?? 0);
 
     if (total > 0 && !force) {
       console.log('Database is not empty. Seed skipped.');
@@ -78,11 +77,11 @@ async function seed({ force = false } = {}) {
     }
 
     if (force) {
-      await pool.query('TRUNCATE TABLE inventory_items');
+      await db.execute(sql`TRUNCATE TABLE inventory_items`);
       console.log('Existing inventory data cleared.');
     }
 
-    const inventoryRepository = createInventoryRepository(pool);
+    const inventoryRepository = createInventoryRepository(db);
 
     for (const item of initialItems) {
       const itemRecord = buildItemRecord(item);

@@ -1,9 +1,11 @@
+import { asc, eq } from 'drizzle-orm';
+import { inventoryItems } from '#db/schema';
 import itemModel from '#models/item.model';
 
 const itemModelEntries = Object.entries(itemModel);
-const itemColumns = itemModelEntries.map(([key]) => key);
-const updatableColumns = itemColumns.filter((key) => key !== 'id');
-const selectColumnsSql = itemColumns.join(', ');
+const updatableColumns = itemModelEntries
+  .map(([key]) => key)
+  .filter((key) => key !== 'id');
 
 function buildItemRecord(values = {}) {
   const itemRecord = {};
@@ -18,42 +20,38 @@ function buildItemRecord(values = {}) {
   return itemRecord;
 }
 
-function buildInsertValues(payload = {}) {
+function buildInsertPayload(payload = {}) {
   const normalizedItem = buildItemRecord(payload);
-  return updatableColumns.map((key) => normalizedItem[key]);
+  return Object.fromEntries(
+    updatableColumns.map((key) => [key, normalizedItem[key]])
+  );
 }
 
 function createInventoryRepository(db) {
   const create = async (payload) => {
-    const placeholders = updatableColumns.map(() => '?').join(', ');
+    const result = await db
+      .insert(inventoryItems)
+      .values(buildInsertPayload(payload))
+      .$returningId();
 
-    const [result] = await db.execute(
-      `INSERT INTO inventory_items (${updatableColumns.join(', ')})
-       VALUES (${placeholders})`,
-      buildInsertValues(payload)
-    );
-
-    return findById(result.insertId);
+    return findById(result[0]?.id ?? null);
   };
 
   const findById = async (id) => {
-    const [rows] = await db.execute(
-      `SELECT ${selectColumnsSql}
-       FROM inventory_items
-       WHERE id = ?
-       LIMIT 1`,
-      [id]
-    );
+    const rows = await db
+      .select()
+      .from(inventoryItems)
+      .where(eq(inventoryItems.id, id))
+      .limit(1);
 
     return rows[0] ? buildItemRecord(rows[0]) : null;
   };
 
   const findAll = async () => {
-    const [rows] = await db.query(
-      `SELECT ${selectColumnsSql}
-       FROM inventory_items
-       ORDER BY id ASC`
-    );
+    const rows = await db
+      .select()
+      .from(inventoryItems)
+      .orderBy(asc(inventoryItems.id));
 
     return rows.map((row) => buildItemRecord(row));
   };
@@ -66,14 +64,11 @@ function createInventoryRepository(db) {
     }
 
     const updatedItem = buildItemRecord({ ...currentItem, ...payload, id });
-    const assignments = updatableColumns.map((column) => `${column} = ?`);
 
-    await db.execute(
-      `UPDATE inventory_items
-       SET ${assignments.join(', ')}
-       WHERE id = ?`,
-      [...updatableColumns.map((key) => updatedItem[key]), id]
-    );
+    await db
+      .update(inventoryItems)
+      .set(buildInsertPayload(updatedItem))
+      .where(eq(inventoryItems.id, id));
 
     return findById(id);
   };
@@ -85,7 +80,7 @@ function createInventoryRepository(db) {
       return null;
     }
 
-    await db.execute('DELETE FROM inventory_items WHERE id = ?', [id]);
+    await db.delete(inventoryItems).where(eq(inventoryItems.id, id));
 
     return currentItem;
   };
