@@ -1,6 +1,17 @@
 const envSchema = {
   type: 'object',
-  required: ['PORT', 'HOSTNAME', 'NODE_ENV', 'ADMIN_API_KEY', 'CORS_ORIGIN'],
+  required: [
+    'PORT',
+    'HOSTNAME',
+    'NODE_ENV',
+    'ADMIN_API_KEY',
+    'CORS_ORIGIN',
+    'MYSQL_HOST',
+    'MYSQL_PORT',
+    'MYSQL_USER',
+    'MYSQL_PASSWORD',
+    'MYSQL_DB',
+  ],
   properties: {
     PORT: {
       type: 'integer',
@@ -28,6 +39,26 @@ const envSchema = {
     },
     GITHUB_TOKEN: {
       type: 'string',
+    },
+    MYSQL_HOST: {
+      type: 'string',
+      minLength: 1,
+    },
+    MYSQL_PORT: {
+      type: 'integer',
+      minimum: 1,
+      maximum: 65535,
+    },
+    MYSQL_USER: {
+      type: 'string',
+      minLength: 1,
+    },
+    MYSQL_PASSWORD: {
+      type: 'string',
+    },
+    MYSQL_DB: {
+      type: 'string',
+      minLength: 1,
     },
   },
 };

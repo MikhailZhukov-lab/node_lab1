@@ -1,13 +1,12 @@
-import { rm } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import mysql from 'mysql2/promise';
+import { runMigration } from '../migrations/migrate.js';
+import { createInventoryRepository } from '../../repositories/inventory.repository.js';
+import itemModel from '../models/item.model.js';
+import { env as runtimeEnv } from 'node:process';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import itemModel from '../../src/models/item.model.js';
-import { writeJsonFileAtomically } from '../../utils/item-files.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const projectRoot = join(__dirname, '..', '..');
-const itemsDirectory = join(projectRoot, 'data', 'items');
+import { join } from 'node:path';
+import { parseEnv } from 'node:util';
 
 const initialItems = [
   { name: 'Laptop', quantity: 5, price: 1200, category: 'electronics' },
@@ -28,24 +27,78 @@ function buildItemRecord(values = {}) {
   return itemRecord;
 }
 
-async function seed() {
-  console.log('Starting database seeding...');
+const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
+const envFilePath = join(projectRoot, '.env');
 
+async function loadEnvConfig() {
   try {
-    await rm(itemsDirectory, { recursive: true, force: true });
-    console.log('Cleared existing data files.');
+    const envFile = await readFile(envFilePath, 'utf8');
+    return {
+      ...parseEnv(envFile),
+      ...runtimeEnv,
+    };
   } catch {
-    console.log('No existing data to clear.');
+    return { ...runtimeEnv };
   }
-
-  for (let i = 0; i < initialItems.length; i++) {
-    const item = initialItems[i];
-    const itemRecord = buildItemRecord({ ...item, id: i + 1 });
-    await writeJsonFileAtomically(itemRecord.id, itemRecord);
-    console.log(`Created item: ${item.name} (id: ${itemRecord.id})`);
-  }
-
-  console.log(`Seeding complete. ${initialItems.length} items created.`);
 }
 
-seed();
+async function createPool() {
+  const config = await loadEnvConfig();
+
+  return mysql.createPool({
+    host: config.MYSQL_HOST,
+    port: Number.parseInt(config.MYSQL_PORT, 10),
+    user: config.MYSQL_USER,
+    password: config.MYSQL_PASSWORD,
+    database: config.MYSQL_DB,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    multipleStatements: true,
+    decimalNumbers: true,
+  });
+}
+
+async function seed({ force = false } = {}) {
+  console.log('Starting database seeding...');
+
+  const pool = await createPool();
+
+  try {
+    await runMigration({ db: pool, logger: console, force });
+
+    const [rows] = await pool.query(
+      'SELECT COUNT(*) AS total FROM inventory_items'
+    );
+    const total = rows[0]?.total ?? 0;
+
+    if (total > 0 && !force) {
+      console.log('Database is not empty. Seed skipped.');
+      return;
+    }
+
+    if (force) {
+      await pool.query('TRUNCATE TABLE inventory_items');
+      console.log('Existing inventory data cleared.');
+    }
+
+    const inventoryRepository = createInventoryRepository(pool);
+
+    for (const item of initialItems) {
+      const itemRecord = buildItemRecord(item);
+      const createdItem = await inventoryRepository.create(itemRecord);
+      console.log(`Created item: ${createdItem.name} (id: ${createdItem.id})`);
+    }
+
+    console.log(`Seeding complete. ${initialItems.length} items created.`);
+  } finally {
+    await pool.end();
+  }
+}
+
+const force = process.argv.includes('--force');
+
+seed({ force }).catch((error) => {
+  console.error('Seed failed:', error);
+  process.exit(1);
+});

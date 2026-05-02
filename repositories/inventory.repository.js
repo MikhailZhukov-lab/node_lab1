@@ -1,14 +1,9 @@
-import { rm } from 'node:fs/promises';
 import itemModel from '#models/item.model';
-import {
-  ensureItemsDirectory,
-  getItemFilePath,
-  listItemFileNames,
-  readJsonFile,
-  writeJsonFileAtomically,
-} from '#utils/item-files';
 
 const itemModelEntries = Object.entries(itemModel);
+const itemColumns = itemModelEntries.map(([key]) => key);
+const updatableColumns = itemColumns.filter((key) => key !== 'id');
+const selectColumnsSql = itemColumns.join(', ');
 
 function buildItemRecord(values = {}) {
   const itemRecord = {};
@@ -23,96 +18,88 @@ function buildItemRecord(values = {}) {
   return itemRecord;
 }
 
-function needsMigration(storedItem) {
-  return itemModelEntries.some(([key]) => !Object.hasOwn(storedItem, key));
+function buildInsertValues(payload = {}) {
+  const normalizedItem = buildItemRecord(payload);
+  return updatableColumns.map((key) => normalizedItem[key]);
 }
 
-async function findById(id) {
-  try {
-    const storedItem = await readJsonFile(getItemFilePath(id));
-    const normalizedItem = buildItemRecord({ ...storedItem, id });
+function createInventoryRepository(db) {
+  const create = async (payload) => {
+    const placeholders = updatableColumns.map(() => '?').join(', ');
 
-    if (needsMigration(storedItem) || storedItem.id !== id) {
-      await writeJsonFileAtomically(id, normalizedItem);
-    }
+    const [result] = await db.execute(
+      `INSERT INTO inventory_items (${updatableColumns.join(', ')})
+       VALUES (${placeholders})`,
+      buildInsertValues(payload)
+    );
 
-    return normalizedItem;
-  } catch (error) {
-    if (error.code === 'ENOENT') {
+    return findById(result.insertId);
+  };
+
+  const findById = async (id) => {
+    const [rows] = await db.execute(
+      `SELECT ${selectColumnsSql}
+       FROM inventory_items
+       WHERE id = ?
+       LIMIT 1`,
+      [id]
+    );
+
+    return rows[0] ? buildItemRecord(rows[0]) : null;
+  };
+
+  const findAll = async () => {
+    const [rows] = await db.query(
+      `SELECT ${selectColumnsSql}
+       FROM inventory_items
+       ORDER BY id ASC`
+    );
+
+    return rows.map((row) => buildItemRecord(row));
+  };
+
+  const update = async (id, payload) => {
+    const currentItem = await findById(id);
+
+    if (!currentItem) {
       return null;
     }
 
-    throw error;
-  }
+    const updatedItem = buildItemRecord({ ...currentItem, ...payload, id });
+    const assignments = updatableColumns.map((column) => `${column} = ?`);
+
+    await db.execute(
+      `UPDATE inventory_items
+       SET ${assignments.join(', ')}
+       WHERE id = ?`,
+      [...updatableColumns.map((key) => updatedItem[key]), id]
+    );
+
+    return findById(id);
+  };
+
+  const remove = async (id) => {
+    const currentItem = await findById(id);
+
+    if (!currentItem) {
+      return null;
+    }
+
+    await db.execute('DELETE FROM inventory_items WHERE id = ?', [id]);
+
+    return currentItem;
+  };
+
+  const initialize = async () => {};
+
+  return {
+    create,
+    findAll,
+    findById,
+    initialize,
+    remove,
+    update,
+  };
 }
 
-async function findAll() {
-  const fileNames = await listItemFileNames();
-  const items = await Promise.all(
-    fileNames.map((fileName) => {
-      const itemId = Number.parseInt(fileName, 10);
-      return findById(itemId);
-    })
-  );
-
-  return items.filter(Boolean).sort((left, right) => left.id - right.id);
-}
-
-async function getNextId() {
-  const fileNames = await listItemFileNames();
-  const itemIds = fileNames.map((fileName) => Number.parseInt(fileName, 10));
-
-  if (itemIds.length === 0) {
-    return 1;
-  }
-
-  return Math.max(...itemIds) + 1;
-}
-
-async function create(payload) {
-  const id = await getNextId();
-  const newItem = buildItemRecord({ ...payload, id });
-
-  await writeJsonFileAtomically(id, newItem);
-
-  return newItem;
-}
-
-async function update(id, payload) {
-  const currentItem = await findById(id);
-
-  if (!currentItem) {
-    return null;
-  }
-
-  const updatedItem = buildItemRecord({ ...currentItem, ...payload, id });
-
-  await writeJsonFileAtomically(id, updatedItem);
-
-  return updatedItem;
-}
-
-async function remove(id) {
-  const currentItem = await findById(id);
-
-  if (!currentItem) {
-    return null;
-  }
-
-  await rm(getItemFilePath(id));
-
-  return currentItem;
-}
-
-async function initialize() {
-  await ensureItemsDirectory();
-}
-
-export default {
-  create,
-  findAll,
-  findById,
-  initialize,
-  remove,
-  update,
-};
+export { createInventoryRepository };

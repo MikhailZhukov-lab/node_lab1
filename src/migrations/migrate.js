@@ -1,98 +1,140 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { env as runtimeEnv } from 'node:process';
+import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import itemModel from '#models/item.model';
-import {
-  ensureItemsDirectory,
-  listItemFileNames,
-  readJsonFile,
-  writeJsonFileAtomically,
-} from '#utils/item-files';
+import { parseEnv } from 'node:util';
+import mysql from 'mysql2/promise';
 
 const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
-const modelPath = join(projectRoot, 'src', 'models', 'item.model.js');
-const versionFilePath = join(projectRoot, 'data', 'version.json');
-const itemModelEntries = Object.entries(itemModel);
+const schemaPath = join(projectRoot, 'db', 'schema.sql');
+const envFilePath = join(projectRoot, '.env');
+const migrationName = 'inventory_schema';
 
-function getModelHash(modelContent) {
-  return createHash('md5').update(modelContent).digest('hex');
+function getSchemaHash(schemaContent) {
+  return createHash('md5').update(schemaContent).digest('hex');
 }
 
-async function getStoredHash() {
+async function loadEnvConfig() {
   try {
-    const versionContent = await readFile(versionFilePath, 'utf8');
-    const versionData = JSON.parse(versionContent);
-    return versionData.modelHash;
+    const envFile = await readFile(envFilePath, 'utf8');
+    return {
+      ...parseEnv(envFile),
+      ...runtimeEnv,
+    };
   } catch {
-    return null;
+    return { ...runtimeEnv };
   }
 }
 
-async function saveVersionHash(hash) {
-  await mkdir(dirname(versionFilePath), { recursive: true });
-  await writeFile(
-    versionFilePath,
-    JSON.stringify({ modelHash: hash }, null, 2),
-    'utf8'
+async function createStandalonePool() {
+  const config = await loadEnvConfig();
+
+  return mysql.createPool({
+    host: config.MYSQL_HOST,
+    port: Number.parseInt(config.MYSQL_PORT, 10),
+    user: config.MYSQL_USER,
+    password: config.MYSQL_PASSWORD,
+    database: config.MYSQL_DB,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    multipleStatements: true,
+    decimalNumbers: true,
+  });
+}
+
+async function getStoredSchemaHash(db) {
+  const [rows] = await db.execute(
+    'SELECT schema_hash FROM migrations WHERE name = ? LIMIT 1',
+    [migrationName]
+  );
+
+  return rows[0]?.schema_hash ?? null;
+}
+
+async function saveSchemaHash(db, hash) {
+  await db.execute(
+    `INSERT INTO migrations (name, schema_hash)
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE
+       schema_hash = VALUES(schema_hash),
+       updated_at = CURRENT_TIMESTAMP`,
+    [migrationName, hash]
   );
 }
 
-function applyModelDefaults(storedItem) {
-  const migratedItem = { ...storedItem };
-  let changed = false;
-
-  for (const [key, defaultValue] of itemModelEntries) {
-    if (!Object.hasOwn(migratedItem, key) || migratedItem[key] === undefined) {
-      migratedItem[key] = defaultValue;
-      changed = true;
-    }
-  }
-
-  return { changed, item: migratedItem };
-}
-
-async function migrate() {
-  const modelContent = await readFile(modelPath, 'utf8');
-  const newHash = getModelHash(modelContent);
-  const currentHash = await getStoredHash();
-
-  if (currentHash === newHash) {
-    console.log('No migration needed. Model hash matches stored hash.');
+function logInfo(logger, message) {
+  if (typeof logger?.info === 'function') {
+    logger.info(message);
     return;
   }
 
-  console.log('Model changed. Running migration...');
+  console.info(message);
+}
 
-  await ensureItemsDirectory();
-  const itemFileNames = await listItemFileNames();
-
-  for (const fileName of itemFileNames) {
-    const itemId = Number.parseInt(fileName, 10);
-    const storedItem = await readJsonFile(
-      join(projectRoot, 'data', 'items', fileName)
-    );
-    const { changed, item } = applyModelDefaults(storedItem);
-
-    if (changed) {
-      await writeJsonFileAtomically(itemId, item);
-      console.log(`Migrated: ${fileName}`);
-    }
+function logWarn(logger, message) {
+  if (typeof logger?.warn === 'function') {
+    logger.warn(message);
+    return;
   }
 
-  await saveVersionHash(newHash);
-  console.log('Migration complete.');
+  console.warn(message);
 }
 
-async function checkModelVersion() {
-  const modelContent = await readFile(modelPath, 'utf8');
-  const currentHash = getModelHash(modelContent);
-  const storedHash = await getStoredHash();
-  return currentHash !== storedHash;
+async function runMigration({ db, logger = console, force = false } = {}) {
+  const schemaContent = await readFile(schemaPath, 'utf8');
+  const schemaHash = getSchemaHash(schemaContent);
+  const pool = db ?? (await createStandalonePool());
+
+  try {
+    await pool.query(schemaContent);
+
+    const storedHash = await getStoredSchemaHash(pool);
+
+    if (!storedHash) {
+      await saveSchemaHash(pool, schemaHash);
+      logInfo(logger, 'MySQL schema initialized.');
+      return {
+        changed: false,
+        initialized: true,
+        schemaHash,
+      };
+    }
+
+    if (storedHash !== schemaHash) {
+      logWarn(
+        logger,
+        'Schema hash changed. Review db/schema.sql and sync the database.'
+      );
+
+      if (force) {
+        await saveSchemaHash(pool, schemaHash);
+        logInfo(logger, 'Schema hash in migrations table has been updated.');
+      }
+
+      return {
+        changed: true,
+        initialized: false,
+        schemaHash,
+      };
+    }
+
+    return {
+      changed: false,
+      initialized: false,
+      schemaHash,
+    };
+  } finally {
+    if (!db) {
+      await pool.end();
+    }
+  }
 }
 
-async function runMigration() {
-  await migrate();
+async function checkSchemaVersion({ db, logger = console } = {}) {
+  const result = await runMigration({ db, logger, force: false });
+  return result.changed;
 }
 
 const isDirectRun =
@@ -100,10 +142,10 @@ const isDirectRun =
   import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isDirectRun) {
-  migrate().catch((error) => {
+  runMigration({ force: true }).catch((error) => {
     console.error('Migration failed:', error);
     process.exit(1);
   });
 }
 
-export { checkModelVersion, runMigration };
+export { checkSchemaVersion, runMigration };
