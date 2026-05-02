@@ -92,6 +92,14 @@ const inventoryListQuerySchema = {
   additionalProperties: false,
 };
 
+const inventoryExportQuerySchema = {
+  type: 'object',
+  properties: {
+    transform: { type: 'boolean', default: false },
+  },
+  additionalProperties: false,
+};
+
 const inventoryPaginatedListQuerySchema = {
   type: 'object',
   properties: {
@@ -225,6 +233,17 @@ const getInventoryDetailsSchema = {
 const exportInventorySchema = {
   summary: 'Export inventory items to CSV',
   tags: ['Inventory v1'],
+  querystring: inventoryExportQuerySchema,
+  response: {
+    200: {
+      type: 'string',
+    },
+  },
+};
+
+const getInventoryStreamSchema = {
+  summary: 'Stream inventory items as NDJSON',
+  tags: ['Inventory v1'],
   response: {
     200: {
       type: 'string',
@@ -261,6 +280,7 @@ export {
   getInventoryDetailsSchema,
   getInventoryListSchema,
   getInventoryPaginatedListSchema,
+  getInventoryStreamSchema,
   importInventorySchema,
   inventoryItemImportSchema,
   inventoryItemDetailsSchema,

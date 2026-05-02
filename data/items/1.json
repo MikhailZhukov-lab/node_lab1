@@ -1,9 +1,9 @@
 {
   "id": 1,
-  "name": "Laptop",
-  "quantity": 5,
-  "price": 1200,
-  "category": "electronics",
-  "image": "/1/image.png",
+  "name": "Test Item",
+  "quantity": 2,
+  "price": 100,
+  "category": "test",
+  "image": null,
   "discount": 0
 }

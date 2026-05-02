@@ -1,0 +1,8 @@
+[
+{"id":1,"name":"Laptop","quantity":5,"price":1200,"category":"electronics","image":"/1/image.png","discount":0},
+{"id":2,"name":"Mouse","quantity":15,"price":25,"category":"accessories","image":"/2/image.png","discount":0},
+{"id":3,"name":"Imported Item","quantity":50,"price":75,"category":"imported","image":null,"discount":0},
+{"id":4,"name":"Keyboard","quantity":10,"price":50,"category":"electronics","image":null,"discount":0},
+{"id":5,"name":"Imported Item","quantity":50,"price":75,"category":"imported","image":null,"discount":0},
+{"id":6,"name":"string","quantity":0,"price":0,"category":"string","image":"Unknown Type: string,null","discount":0}
+]

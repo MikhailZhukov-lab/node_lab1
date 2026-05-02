@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { ERROR_MESSAGES } from '#constants/error-messages';
 import { inventoryItemImportSchema } from '#schemas/inventory.schema';
 import inventoryService from '#services/inventory.service';
+import { InventoryCsvTransform } from '#transforms/inventory-csv.transform';
+import { NdjsonTransform } from '#transforms/ndjson.transform';
+import { INVENTORY_EVENTS, inventoryEventBus } from '#utils/inventory-events';
 import {
   buildImageUrl,
   buildItemWithImageUrl,
@@ -20,6 +23,29 @@ import {
 const ajvValidator = new (await import('ajv')).default();
 const validateItemForImport = ajvValidator.compile(inventoryItemImportSchema);
 const maxImageFileSize = 5 * 1024 * 1024;
+const csvBaseColumns = ['id', 'name', 'quantity', 'price', 'category', 'image'];
+
+function shouldTransformExport(query = {}) {
+  return query.transform === true || query.transform === 'true';
+}
+
+function createCsvExportStream(request, { transform = false } = {}) {
+  const inventoryStream = inventoryService.createItemReadStream();
+  const csvTransform = new InventoryCsvTransform({
+    imageUrlBuilder: (imagePath) => buildImageUrl(request, imagePath),
+    convertPriceToUah: transform,
+    usdToUahRate: request.server.config.USD_TO_UAH_RATE,
+  });
+  const csvStringifier = stringify({
+    header: true,
+    columns: csvBaseColumns,
+    cast: {
+      boolean: (value) => (value ? 'true' : 'false'),
+    },
+  });
+
+  return inventoryStream.pipe(csvTransform).pipe(csvStringifier);
+}
 
 function normalizeImportedItem(record) {
   const quantity =
@@ -80,6 +106,7 @@ const getItemDetails = async (request, reply) => {
 
 const addItem = async (request, reply) => {
   const newItem = await inventoryService.addItem(request.body);
+  inventoryEventBus.emit(INVENTORY_EVENTS.CREATED, newItem);
   return reply.status(201).send(buildItemWithImageUrl(request, newItem));
 };
 
@@ -91,6 +118,7 @@ const updateItem = async (request, reply) => {
     return reply.notFound(ERROR_MESSAGES.INVENTORY_ITEM_NOT_FOUND);
   }
 
+  inventoryEventBus.emit(INVENTORY_EVENTS.UPDATED, updatedItem);
   return reply.status(200).send(buildItemWithImageUrl(request, updatedItem));
 };
 
@@ -102,6 +130,7 @@ const removeItem = async (request, reply) => {
     return reply.notFound(ERROR_MESSAGES.INVENTORY_ITEM_NOT_FOUND);
   }
 
+  inventoryEventBus.emit(INVENTORY_EVENTS.DELETED, { id: itemId });
   return reply.status(200).send({
     message: 'Item deleted successfully',
     item: buildItemWithImageUrl(request, deletedItem),
@@ -109,24 +138,24 @@ const removeItem = async (request, reply) => {
 };
 
 const exportItems = async (request, reply) => {
-  const items = await inventoryService.getList();
-
-  const itemsWithFullImageUrl = items.map((item) => ({
-    ...item,
-    image: buildImageUrl(request, item.image) ?? '',
-  }));
-
-  const csvColumns = ['id', 'name', 'quantity', 'price', 'category', 'image'];
+  const transform = shouldTransformExport(request.query);
+  const csvStream = createCsvExportStream(request, { transform });
 
   return reply
     .header('Content-Type', 'text/csv')
     .header('Content-Disposition', 'attachment; filename="items.csv"')
-    .send(
-      stringify(itemsWithFullImageUrl, {
-        header: true,
-        columns: csvColumns,
-      })
-    );
+    .send(csvStream);
+};
+
+const streamItems = async (request, reply) => {
+  const inventoryStream = inventoryService.createItemReadStream();
+  const ndjsonTransform = new NdjsonTransform({
+    mapRecord: (item) => buildItemWithImageUrl(request, item),
+  });
+
+  return reply
+    .type('application/x-ndjson')
+    .send(inventoryStream.pipe(ndjsonTransform));
 };
 
 const uploadImage = async (request, reply) => {
@@ -278,6 +307,7 @@ export default {
   getPaginatedList,
   importItems,
   removeItem,
+  streamItems,
   updateItem,
   uploadImage,
 };

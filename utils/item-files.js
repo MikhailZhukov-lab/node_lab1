@@ -77,7 +77,9 @@ export {
   getItemFilePath,
   getItemImagePath,
   getItemUploadDirectoryPath,
+  itemsDirectoryPath,
   listItemFileNames,
+  projectRootPath,
   readJsonFile,
   writeJsonFileAtomically,
 };

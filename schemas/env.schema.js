@@ -1,6 +1,15 @@
 const envSchema = {
   type: 'object',
-  required: ['PORT', 'HOSTNAME', 'NODE_ENV', 'ADMIN_API_KEY', 'CORS_ORIGIN'],
+  required: [
+    'PORT',
+    'HOSTNAME',
+    'NODE_ENV',
+    'ADMIN_API_KEY',
+    'CORS_ORIGIN',
+    'MONGO_URL',
+    'MONGO_DB_NAME',
+    'USD_TO_UAH_RATE',
+  ],
   properties: {
     PORT: {
       type: 'integer',
@@ -28,6 +37,18 @@ const envSchema = {
     },
     GITHUB_TOKEN: {
       type: 'string',
+    },
+    MONGO_URL: {
+      type: 'string',
+      minLength: 1,
+    },
+    MONGO_DB_NAME: {
+      type: 'string',
+      minLength: 1,
+    },
+    USD_TO_UAH_RATE: {
+      type: 'number',
+      exclusiveMinimum: 0,
     },
   },
 };

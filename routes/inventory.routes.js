@@ -5,6 +5,7 @@ import {
   exportInventorySchema,
   getInventoryDetailsSchema,
   getInventoryListSchema,
+  getInventoryStreamSchema,
   importInventorySchema,
   uploadInventoryImageSchema,
   updateInventorySchema,
@@ -20,6 +21,31 @@ async function inventoryRoutes(fastify) {
     '/inventory/export',
     { schema: exportInventorySchema },
     inventoryController.exportItems
+  );
+  fastify.get(
+    '/items/export',
+    {
+      schema: {
+        ...exportInventorySchema,
+        hide: true,
+      },
+    },
+    inventoryController.exportItems
+  );
+  fastify.get(
+    '/inventory/stream',
+    { schema: getInventoryStreamSchema },
+    inventoryController.streamItems
+  );
+  fastify.get(
+    '/items/stream',
+    {
+      schema: {
+        ...getInventoryStreamSchema,
+        hide: true,
+      },
+    },
+    inventoryController.streamItems
   );
   fastify.post(
     '/inventory/import',

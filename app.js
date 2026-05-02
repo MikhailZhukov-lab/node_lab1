@@ -10,12 +10,17 @@ import fastifyHelmet from '@fastify/helmet';
 import fastifySensible from '@fastify/sensible';
 import fastifyStatic from '@fastify/static';
 import fastifySwagger from '@fastify/swagger';
+import fastifyWebsocket from '@fastify/websocket';
 import Fastify from 'fastify';
+import mongoPlugin from '#db/mongo';
 import { ERROR_MESSAGES } from '#constants/error-messages';
+import backupRoutes from '#routes/backup.routes';
 import githubRoutes from '#routes/github.routes';
 import githubV2Routes from '#routes/github-v2.routes';
+import inventoryRealtimeRoutes from '#routes/inventory-realtime.routes';
 import inventoryRoutes from '#routes/inventory.routes';
 import inventoryV2Routes from '#routes/inventory-v2.routes';
+import { buildInventoryRepository } from '#repositories/inventory.repository';
 import envSchema from '#schemas/env.schema';
 import {
   healthDetailsSchema,
@@ -23,7 +28,6 @@ import {
 } from '#schemas/health.schema';
 import inventoryService from '#services/inventory.service';
 import { createBackup } from '#utils/backup';
-import { checkModelVersion } from '#utils/migrate';
 
 function resolveNodeEnv() {
   try {
@@ -149,7 +153,9 @@ function buildHealthDetails() {
 }
 
 async function apiRoutes(fastify) {
+  await fastify.register(inventoryRealtimeRoutes);
   await fastify.register(inventoryRoutes);
+  await fastify.register(backupRoutes);
   await fastify.register(githubRoutes);
 
   fastify.get(
@@ -201,6 +207,13 @@ function buildApp() {
     schema: envSchema,
     dotenv: true,
   });
+  fastify.register(mongoPlugin);
+  fastify.register(async function inventoryDataAccessPlugin(instance) {
+    inventoryService.configureInventoryService(
+      buildInventoryRepository(instance.db)
+    );
+    await inventoryService.initializeInventoryStorage();
+  });
 
   fastify.register(fastifySwagger, {
     openapi: {
@@ -239,6 +252,12 @@ function buildApp() {
   });
 
   fastify.register(fastifyMultipart);
+  fastify.register(fastifyWebsocket, {
+    errorHandler(error, socket, request) {
+      request.log.warn({ err: error }, 'WebSocket route failed');
+      socket.terminate();
+    },
+  });
 
   fastify.register(fastifyStatic, {
     root: fileURLToPath(new URL('./uploads/', import.meta.url)),
@@ -394,18 +413,16 @@ async function start() {
   registerProcessHandlers();
 
   try {
-    await inventoryService.initializeInventoryStorage();
-    const backupPath = await createBackup();
-    fastify.log.info({ backupPath }, 'Backup created on startup');
-
-    const needsMigration = await checkModelVersion();
-    if (needsMigration) {
+    await fastify.ready();
+    try {
+      const backupPath = await createBackup({ log: fastify.log });
+      fastify.log.info({ backupPath }, 'Backup created on startup');
+    } catch (backupError) {
       fastify.log.warn(
-        'Data schema changed. Run "npm run migrate" to update existing files.'
+        { err: backupError },
+        'Backup creation failed on startup, continuing without stopping the server'
       );
     }
-
-    await fastify.ready();
 
     await fastify.listen({
       host: fastify.config.HOSTNAME,

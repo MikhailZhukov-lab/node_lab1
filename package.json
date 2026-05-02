@@ -10,16 +10,19 @@
   "imports": {
     "#constants/*": "./constants/*.js",
     "#controllers/*": "./controllers/*.js",
+    "#db/*": "./db/*.js",
     "#models/*": "./src/models/*.js",
     "#repositories/*": "./repositories/*.js",
     "#routes/*": "./routes/*.js",
     "#schemas/*": "./schemas/*.js",
     "#services/*": "./services/*.js",
+    "#transforms/*": "./src/transforms/*.js",
     "#utils/*": "./utils/*.js",
     "#utils/migrate": "./src/migrations/migrate.js"
   },
   "scripts": {
     "seed": "node src/scripts/seed.js",
+    "seed:force": "node src/scripts/seed.js --force",
     "migrate": "node src/migrations/migrate.js",
     "start": "node app.js",
     "dev": "node --watch app.js",
@@ -42,10 +45,13 @@
     "@fastify/static": "^8.0.0",
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^5.2.5",
+    "@fastify/websocket": "^11.2.0",
     "ajv": "^8.18.0",
     "csv-parse": "^5.5.0",
     "csv-stringify": "^6.7.0",
-    "fastify": "^5.8.4"
+    "fastify": "^5.8.4",
+    "fastify-plugin": "^5.1.0",
+    "mongoose": "^9.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

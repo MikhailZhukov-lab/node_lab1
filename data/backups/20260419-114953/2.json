@@ -1,9 +1,0 @@
-{
-  "id": 2,
-  "name": "Mouse",
-  "quantity": 15,
-  "price": 25,
-  "category": "accessories",
-  "image": "/2/image.png",
-  "discount": 0
-}

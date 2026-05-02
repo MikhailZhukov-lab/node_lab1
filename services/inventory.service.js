@@ -1,8 +1,21 @@
-import inventoryRepository from '#repositories/inventory.repository';
 import { getItemDetailsWithReference } from '#utils/reference-data';
 
+let inventoryRepository = null;
+
+function configureInventoryService(repository) {
+  inventoryRepository = repository;
+}
+
+function getInventoryRepository() {
+  if (!inventoryRepository) {
+    throw new Error('Inventory repository has not been configured');
+  }
+
+  return inventoryRepository;
+}
+
 const getList = async (query = {}) => {
-  const items = await inventoryRepository.findAll();
+  const items = await getInventoryRepository().findAll();
 
   if (query && query.category) {
     return items.filter((item) => item.category === query.category);
@@ -31,10 +44,10 @@ const getPaginatedList = async (query = {}) => {
   };
 };
 
-const getById = async (id) => inventoryRepository.findById(id);
+const getById = async (id) => getInventoryRepository().findById(id);
 
 const getDetailsById = async (id) => {
-  const item = await inventoryRepository.findById(id);
+  const item = await getInventoryRepository().findById(id);
 
   if (!item) {
     return null;
@@ -43,17 +56,22 @@ const getDetailsById = async (id) => {
   return getItemDetailsWithReference(item);
 };
 
-const addItem = async (payload) => inventoryRepository.create(payload);
+const addItem = async (payload) => getInventoryRepository().create(payload);
 
 const updateItem = async (id, payload) =>
-  inventoryRepository.update(id, payload);
+  getInventoryRepository().update(id, payload);
 
-const removeItem = async (id) => inventoryRepository.remove(id);
+const removeItem = async (id) => getInventoryRepository().remove(id);
 
-const initializeInventoryStorage = async () => inventoryRepository.initialize();
+const initializeInventoryStorage = async () =>
+  getInventoryRepository().initialize();
+
+const createItemReadStream = () => getInventoryRepository().createReadStream();
 
 export default {
   addItem,
+  configureInventoryService,
+  createItemReadStream,
   getDetailsById,
   getById,
   getList,
@@ -62,3 +80,5 @@ export default {
   removeItem,
   updateItem,
 };
+
+export { configureInventoryService };
