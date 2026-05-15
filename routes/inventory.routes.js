@@ -9,6 +9,7 @@ import {
   uploadInventoryImageSchema,
   updateInventorySchema,
 } from '#schemas/inventory.schema';
+import { requireSession } from '#utils/auth';
 
 async function inventoryRoutes(fastify) {
   fastify.get(
@@ -23,12 +24,12 @@ async function inventoryRoutes(fastify) {
   );
   fastify.post(
     '/inventory/import',
-    { schema: importInventorySchema },
+    { onRequest: requireSession, schema: importInventorySchema },
     inventoryController.importItems
   );
   fastify.post(
     '/inventory',
-    { schema: createInventorySchema },
+    { onRequest: requireSession, schema: createInventorySchema },
     inventoryController.addItem
   );
   fastify.get(
@@ -48,17 +49,18 @@ async function inventoryRoutes(fastify) {
   );
   fastify.patch(
     '/inventory/:id',
-    { schema: updateInventorySchema },
+    { onRequest: requireSession, schema: updateInventorySchema },
     inventoryController.updateItem
   );
   fastify.delete(
     '/inventory/:id',
-    { schema: deleteInventorySchema },
+    { onRequest: requireSession, schema: deleteInventorySchema },
     inventoryController.removeItem
   );
   fastify.post(
     '/inventory/:id/image',
     {
+      onRequest: requireSession,
       schema: uploadInventoryImageSchema,
     },
     inventoryController.uploadImage
