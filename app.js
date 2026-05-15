@@ -12,12 +12,16 @@ import fastifyStatic from '@fastify/static';
 import fastifySwagger from '@fastify/swagger';
 import Fastify from 'fastify';
 import { ERROR_MESSAGES } from '#constants/error-messages';
+import { REDIS_TTL_SECONDS } from '#constants/redis';
 import drizzlePlugin from '#db/drizzle';
+import jwtPlugin from '#db/jwt';
 import redisPlugin from '#db/redis';
 import mysqlPlugin from './db/mysql.js';
+import authRoutes from '#routes/auth.routes';
 import githubRoutes from '#routes/github.routes';
 import githubV2Routes from '#routes/github-v2.routes';
 import { createInventoryRepository } from '#repositories/inventory.repository';
+import { createUsersRepository } from '#repositories/users.repository';
 import inventoryRoutes from '#routes/inventory.routes';
 import inventoryV2Routes from '#routes/inventory-v2.routes';
 import envSchema from '#schemas/env.schema';
@@ -25,6 +29,7 @@ import {
   healthDetailsSchema,
   healthPublicSchema,
 } from '#schemas/health.schema';
+import { configureAuthService } from '#services/auth.service';
 import inventoryService, {
   configureInventoryService,
 } from '#services/inventory.service';
@@ -208,15 +213,42 @@ function buildApp() {
   fastify.register(mysqlPlugin);
   fastify.register(drizzlePlugin);
   fastify.register(redisPlugin);
-  fastify.register(async function inventoryDependenciesPlugin(instance) {
+  fastify.register(jwtPlugin);
+  fastify.register(async function appDependenciesPlugin(instance) {
     configureInventoryService({
       inventoryRepository: createInventoryRepository(instance.db),
       redis: instance.redis,
+    });
+    configureAuthService({
+      redis: instance.redis,
+      signAccessToken(payload) {
+        return instance.jwt.sign(payload, {
+          expiresIn: REDIS_TTL_SECONDS.jwtAccessToken,
+        });
+      },
+      signRefreshToken(payload) {
+        return instance.jwt.sign(payload, {
+          expiresIn: REDIS_TTL_SECONDS.jwtRefreshToken,
+        });
+      },
+      usersRepository: createUsersRepository(instance.db),
+      verifyToken(token) {
+        return instance.jwt.verify(token);
+      },
     });
   });
 
   fastify.register(fastifySwagger, {
     openapi: {
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            bearerFormat: 'JWT',
+            scheme: 'bearer',
+            type: 'http',
+          },
+        },
+      },
       info: {
         title: 'Inventory API',
         description: 'API documentation for the laboratory project',
@@ -232,6 +264,10 @@ function buildApp() {
         {
           name: 'GitHub v2',
           description: 'Version 2 GitHub analytics endpoints',
+        },
+        {
+          name: 'Auth',
+          description: 'JWT authentication endpoints',
         },
         { name: 'Health', description: 'Health check endpoints' },
       ],
@@ -318,6 +354,7 @@ function buildApp() {
   );
   fastify.register(fastifyHelmet, { global: true });
   fastify.register(fastifySensible);
+  fastify.register(authRoutes);
   fastify.register(apiRoutes, { prefix: '/api/v1' });
   fastify.register(apiV2Routes, { prefix: '/api/v2' });
 

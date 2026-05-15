@@ -185,19 +185,23 @@ const getInventoryPaginatedListSchema = {
 const createInventorySchema = {
   summary: 'Create inventory item',
   tags: ['Inventory v1'],
+  security: [{ bearerAuth: [] }],
   body: inventoryItemCreateBodySchema,
   response: {
     201: inventoryItemSchema,
+    401: inventoryErrorSchema,
   },
 };
 
 const updateInventorySchema = {
   summary: 'Update inventory item',
   tags: ['Inventory v1'],
+  security: [{ bearerAuth: [] }],
   params: inventoryParamsSchema,
   body: inventoryItemUpdateBodySchema,
   response: {
     200: inventoryItemSchema,
+    401: inventoryErrorSchema,
     404: inventoryErrorSchema,
   },
 };
@@ -205,9 +209,11 @@ const updateInventorySchema = {
 const deleteInventorySchema = {
   summary: 'Delete inventory item',
   tags: ['Inventory v1'],
+  security: [{ bearerAuth: [] }],
   params: inventoryParamsSchema,
   response: {
     200: inventoryDeleteResponseSchema,
+    401: inventoryErrorSchema,
     404: inventoryErrorSchema,
   },
 };
@@ -235,21 +241,25 @@ const exportInventorySchema = {
 const importInventorySchema = {
   summary: 'Import inventory items from CSV or JSON',
   tags: ['Inventory v1'],
+  security: [{ bearerAuth: [] }],
   consumes: ['multipart/form-data'],
   response: {
     200: inventoryImportResponseSchema,
     400: inventoryErrorSchema,
+    401: inventoryErrorSchema,
   },
 };
 
 const uploadInventoryImageSchema = {
   summary: 'Upload image for inventory item',
   tags: ['Inventory v1'],
+  security: [{ bearerAuth: [] }],
   consumes: ['multipart/form-data'],
   params: inventoryParamsSchema,
   response: {
     200: inventoryItemSchema,
     400: inventoryErrorSchema,
+    401: inventoryErrorSchema,
     404: inventoryErrorSchema,
   },
 };

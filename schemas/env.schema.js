@@ -13,6 +13,7 @@ const envSchema = {
     'MYSQL_DB',
     'REDIS_HOST',
     'REDIS_PORT',
+    'JWT_SECRET',
   ],
   properties: {
     PORT: {
@@ -70,6 +71,10 @@ const envSchema = {
       type: 'integer',
       minimum: 1,
       maximum: 65535,
+    },
+    JWT_SECRET: {
+      type: 'string',
+      minLength: 32,
     },
   },
 };
