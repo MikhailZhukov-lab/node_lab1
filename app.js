@@ -13,6 +13,7 @@ import fastifySwagger from '@fastify/swagger';
 import Fastify from 'fastify';
 import { ERROR_MESSAGES } from '#constants/error-messages';
 import drizzlePlugin from '#db/drizzle';
+import redisPlugin from '#db/redis';
 import mysqlPlugin from './db/mysql.js';
 import githubRoutes from '#routes/github.routes';
 import githubV2Routes from '#routes/github-v2.routes';
@@ -206,9 +207,11 @@ function buildApp() {
   });
   fastify.register(mysqlPlugin);
   fastify.register(drizzlePlugin);
+  fastify.register(redisPlugin);
   fastify.register(async function inventoryDependenciesPlugin(instance) {
     configureInventoryService({
       inventoryRepository: createInventoryRepository(instance.db),
+      redis: instance.redis,
     });
   });
 
@@ -235,17 +238,20 @@ function buildApp() {
     },
   });
 
-  fastify.register(fastifyRateLimit, {
-    global: true,
-    max: 100,
-    timeWindow: '1 minute',
-    errorResponseBuilder(_request, context) {
-      return {
-        statusCode: 429,
-        error: 'Too Many Requests',
-        message: `Rate limit exceeded. Retry in ${context.after}.`,
-      };
-    },
+  fastify.register(async function rateLimitPlugin(instance) {
+    await instance.register(fastifyRateLimit, {
+      global: true,
+      max: 100,
+      redis: instance.redis,
+      timeWindow: '1 minute',
+      errorResponseBuilder(_request, context) {
+        return {
+          statusCode: 429,
+          error: 'Too Many Requests',
+          message: `Rate limit exceeded. Retry in ${context.after}.`,
+        };
+      },
+    });
   });
 
   fastify.register(fastifyMultipart);

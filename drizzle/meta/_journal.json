@@ -8,6 +8,13 @@
       "when": 1777728729654,
       "tag": "0000_young_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1778872304869,
+      "tag": "0001_melodic_deathstrike",
+      "breakpoints": true
     }
   ]
 }

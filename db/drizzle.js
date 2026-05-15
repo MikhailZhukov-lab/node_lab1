@@ -5,6 +5,7 @@ import * as schema from '#db/schema';
 async function drizzlePlugin(fastify) {
   const db = drizzle({
     client: fastify.mysql,
+    mode: 'default',
     schema,
   });
 

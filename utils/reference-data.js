@@ -1,66 +1,13 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { REDIS_KEYS, REDIS_TTL_SECONDS } from '#constants/redis';
 
 const externalServiceUrl = 'http://127.0.0.1:3001/categories';
-const cacheTtlMs = 120_000;
 const fetchTimeoutMs = 5_000;
 const retryDelaysMs = [1_000, 2_000, 4_000];
-const projectRootPath = fileURLToPath(new URL('..', import.meta.url));
-const cacheDirectoryPath = join(projectRootPath, 'data', 'cache');
-const cacheFilePath = join(cacheDirectoryPath, 'reference.json');
 
 function delay(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
-}
-
-async function ensureCacheDirectory() {
-  await mkdir(cacheDirectoryPath, { recursive: true });
-}
-
-async function readCacheFile() {
-  try {
-    const rawCache = await readFile(cacheFilePath, 'utf8');
-    return JSON.parse(rawCache);
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return null;
-    }
-
-    return null;
-  }
-}
-
-function isCacheActive(cachePayload) {
-  if (!cachePayload || !Array.isArray(cachePayload.categories)) {
-    return false;
-  }
-
-  const cachedAt = Number(cachePayload.cachedAt);
-
-  if (!Number.isFinite(cachedAt)) {
-    return false;
-  }
-
-  return Date.now() - cachedAt < cacheTtlMs;
-}
-
-async function writeCacheFile(categories) {
-  await ensureCacheDirectory();
-  await writeFile(
-    cacheFilePath,
-    JSON.stringify(
-      {
-        cachedAt: Date.now(),
-        categories,
-      },
-      null,
-      2
-    ),
-    'utf8'
-  );
 }
 
 async function fetchCategories() {
@@ -122,22 +69,41 @@ function buildDetailsWithExternalFields(item, categoryReference) {
   };
 }
 
-async function getReferenceCategories() {
-  const cachePayload = await readCacheFile();
+function parseCachedCategories(value) {
+  if (!value) {
+    return null;
+  }
 
-  if (isCacheActive(cachePayload)) {
-    return cachePayload.categories;
+  try {
+    const parsedValue = JSON.parse(value);
+    return Array.isArray(parsedValue) ? parsedValue : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getReferenceCategories(redis) {
+  const cachedValue = await redis.get(REDIS_KEYS.referenceCategories);
+  const cachedCategories = parseCachedCategories(cachedValue);
+
+  if (cachedCategories) {
+    return cachedCategories;
   }
 
   const categories = await fetchCategories();
-  await writeCacheFile(categories);
+  await redis.set(
+    REDIS_KEYS.referenceCategories,
+    JSON.stringify(categories),
+    'EX',
+    REDIS_TTL_SECONDS.referenceCategories
+  );
 
   return categories;
 }
 
-async function getItemDetailsWithReference(item) {
+async function getItemDetailsWithReference(item, redis) {
   try {
-    const categories = await getReferenceCategories();
+    const categories = await getReferenceCategories(redis);
     const matchedCategory = categories.find(
       (category) =>
         normalizeCategoryName(category.name) ===
@@ -150,4 +116,4 @@ async function getItemDetailsWithReference(item) {
   }
 }
 
-export { cacheFilePath, getItemDetailsWithReference };
+export { getItemDetailsWithReference };

@@ -11,6 +11,8 @@ const envSchema = {
     'MYSQL_USER',
     'MYSQL_PASSWORD',
     'MYSQL_DB',
+    'REDIS_HOST',
+    'REDIS_PORT',
   ],
   properties: {
     PORT: {
@@ -59,6 +61,15 @@ const envSchema = {
     MYSQL_DB: {
       type: 'string',
       minLength: 1,
+    },
+    REDIS_HOST: {
+      type: 'string',
+      minLength: 1,
+    },
+    REDIS_PORT: {
+      type: 'integer',
+      minimum: 1,
+      maximum: 65535,
     },
   },
 };

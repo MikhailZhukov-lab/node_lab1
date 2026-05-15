@@ -26,8 +26,6 @@ export default defineConfig({
     port: Number.parseInt(config.MYSQL_PORT, 10),
     user: config.MYSQL_USER,
     database: config.MYSQL_DB,
-    ...(config.MYSQL_PASSWORD
-      ? { password: config.MYSQL_PASSWORD }
-      : {}),
+    ...(config.MYSQL_PASSWORD ? { password: config.MYSQL_PASSWORD } : {}),
   },
 });
