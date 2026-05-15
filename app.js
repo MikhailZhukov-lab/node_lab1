@@ -34,19 +34,21 @@ import inventoryService, {
   configureInventoryService,
 } from '#services/inventory.service';
 
-function resolveNodeEnv() {
+function readEnvFile(envFilePath = new URL('./.env', import.meta.url)) {
   try {
-    const envFile = readFileSync(new URL('./.env', import.meta.url), 'utf8');
-    const parsedEnv = parseEnv(envFile);
-
-    return runtimeEnv.NODE_ENV ?? parsedEnv.NODE_ENV ?? 'development';
+    const envFile = readFileSync(envFilePath, 'utf8');
+    return parseEnv(envFile);
   } catch {
-    return runtimeEnv.NODE_ENV ?? 'development';
+    return {};
   }
 }
 
-function buildLoggerOptions() {
-  const nodeEnv = resolveNodeEnv();
+function resolveNodeEnv(envData = {}) {
+  return runtimeEnv.NODE_ENV ?? envData.NODE_ENV ?? 'development';
+}
+
+function buildLoggerOptions(envData = {}) {
+  const nodeEnv = resolveNodeEnv(envData);
 
   if (nodeEnv === 'production') {
     return {
@@ -200,42 +202,52 @@ async function apiV2Routes(fastify) {
   await fastify.register(githubV2Routes);
 }
 
-function buildApp() {
+function configureAppServices(instance) {
+  configureInventoryService({
+    inventoryRepository: createInventoryRepository(instance.db),
+    redis: instance.redis,
+  });
+  configureAuthService({
+    redis: instance.redis,
+    signAccessToken(payload) {
+      return instance.jwt.sign(payload, {
+        expiresIn: REDIS_TTL_SECONDS.jwtAccessToken,
+      });
+    },
+    signRefreshToken(payload) {
+      return instance.jwt.sign(payload, {
+        expiresIn: REDIS_TTL_SECONDS.jwtRefreshToken,
+      });
+    },
+    usersRepository: createUsersRepository(instance.db),
+    verifyToken(token) {
+      return instance.jwt.verify(token);
+    },
+  });
+}
+
+function buildApp({
+  envData = {
+    ...readEnvFile(),
+    ...runtimeEnv,
+  },
+  loggerOptions = buildLoggerOptions(envData),
+} = {}) {
   const fastify = Fastify({
-    logger: buildLoggerOptions(),
+    logger: loggerOptions,
   });
 
   fastify.register(fastifyEnv, {
     confKey: 'config',
     schema: envSchema,
-    dotenv: true,
+    data: envData,
   });
   fastify.register(mysqlPlugin);
   fastify.register(drizzlePlugin);
   fastify.register(redisPlugin);
   fastify.register(jwtPlugin);
   fastify.register(async function appDependenciesPlugin(instance) {
-    configureInventoryService({
-      inventoryRepository: createInventoryRepository(instance.db),
-      redis: instance.redis,
-    });
-    configureAuthService({
-      redis: instance.redis,
-      signAccessToken(payload) {
-        return instance.jwt.sign(payload, {
-          expiresIn: REDIS_TTL_SECONDS.jwtAccessToken,
-        });
-      },
-      signRefreshToken(payload) {
-        return instance.jwt.sign(payload, {
-          expiresIn: REDIS_TTL_SECONDS.jwtRefreshToken,
-        });
-      },
-      usersRepository: createUsersRepository(instance.db),
-      verifyToken(token) {
-        return instance.jwt.verify(token);
-      },
-    });
+    configureAppServices(instance);
   });
 
   fastify.register(fastifySwagger, {
@@ -375,7 +387,10 @@ function buildApp() {
   return fastify;
 }
 
-const fastify = buildApp();
+function getFastifyInstance() {
+  return globalThis.__inventoryFastifyInstance ?? null;
+}
+
 let isShuttingDown = false;
 
 function normalizeError(reason) {
@@ -391,6 +406,12 @@ function normalizeError(reason) {
 }
 
 async function gracefulShutdown(reason, error) {
+  const fastify = getFastifyInstance();
+
+  if (!fastify) {
+    process.exit(error ? 1 : 0);
+  }
+
   if (isShuttingDown) {
     return;
   }
@@ -444,6 +465,8 @@ function registerProcessHandlers() {
 }
 
 async function start() {
+  const fastify = buildApp();
+  globalThis.__inventoryFastifyInstance = fastify;
   registerProcessHandlers();
 
   try {
@@ -473,4 +496,4 @@ if (isDirectRun) {
   void start();
 }
 
-export { buildApp, fastify, gracefulShutdown, start };
+export { buildApp, getFastifyInstance, gracefulShutdown, readEnvFile, start };

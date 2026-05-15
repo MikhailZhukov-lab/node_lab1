@@ -20,7 +20,7 @@ async function mysqlPlugin(fastify) {
   } catch (error) {
     fastify.log.error({ err: error }, 'Failed to connect to MySQL');
     await pool.end().catch(() => {});
-    process.exit(1);
+    throw error;
   }
 
   fastify.decorate('mysql', pool);

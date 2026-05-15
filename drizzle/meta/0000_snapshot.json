@@ -68,9 +68,7 @@
       "compositePrimaryKeys": {
         "inventory_items_id": {
           "name": "inventory_items_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},

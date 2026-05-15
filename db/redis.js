@@ -3,6 +3,7 @@ import fp from 'fastify-plugin';
 
 async function redisPlugin(fastify) {
   await fastify.register(fastifyRedis, {
+    db: fastify.config.REDIS_DB,
     host: fastify.config.REDIS_HOST,
     port: fastify.config.REDIS_PORT,
   });

@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      target: dev
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      CORS_ORIGIN: http://127.0.0.1:3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - uploads-data:/app/uploads

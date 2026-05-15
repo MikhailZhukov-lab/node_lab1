@@ -72,6 +72,12 @@ const envSchema = {
       minimum: 1,
       maximum: 65535,
     },
+    REDIS_DB: {
+      type: 'integer',
+      minimum: 0,
+      maximum: 15,
+      default: 0,
+    },
     JWT_SECRET: {
       type: 'string',
       minLength: 32,

@@ -1,5 +1,8 @@
 export default [
   {
+    ignores: ['coverage/**'],
+  },
+  {
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

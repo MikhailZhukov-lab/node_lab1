@@ -23,7 +23,9 @@ function getSharedContributors(candidateContributors, sourceContributorSet) {
   );
 }
 
-async function loadSourceRepositoryData(repoPath, githubToken) {
+async function loadSourceRepositoryData(repoPath, githubToken, dependencies) {
+  const { getRepository, getRepositoryContributors, parseRepositoryPath } =
+    dependencies;
   const sourceRepositoryPath = parseRepositoryPath(repoPath);
   const sourceRepository = await getRepository(
     sourceRepositoryPath.owner,
@@ -43,76 +45,120 @@ async function loadSourceRepositoryData(repoPath, githubToken) {
   };
 }
 
-async function getSharedRepositoriesSequential(repoPath, githubToken) {
-  const { sourceRepository, sourceRepositoryPath, sourceContributorSet } =
-    await loadSourceRepositoryData(repoPath, githubToken);
-  const ownerRepositories = await getOwnerRepositories(
-    sourceRepository.owner.login,
-    sourceRepository.owner.type,
-    githubToken
-  );
-  const candidateRepositories = excludeSourceRepository(
-    ownerRepositories,
-    sourceRepository.full_name
-  );
-  const matches = [];
-
-  for (const candidate of candidateRepositories) {
-    const candidateContributors = await getRepositoryContributors(
-      candidate.owner.login,
-      candidate.name,
+function createGithubService(
+  dependencies = {
+    buildRepositorySummary,
+    createAnalyticsResponse,
+    getOwnerRepositories,
+    getRepository,
+    getRepositoryContributors,
+    mapWithConcurrency,
+    parseRepositoryPath,
+    rankRepositories,
+  }
+) {
+  const getSharedRepositoriesSequential = async (repoPath, githubToken) => {
+    const { sourceRepository, sourceRepositoryPath, sourceContributorSet } =
+      await loadSourceRepositoryData(repoPath, githubToken, dependencies);
+    const ownerRepositories = await dependencies.getOwnerRepositories(
+      sourceRepository.owner.login,
+      sourceRepository.owner.type,
       githubToken
     );
-    const sharedContributors = getSharedContributors(
-      candidateContributors,
-      sourceContributorSet
+    const candidateRepositories = excludeSourceRepository(
+      ownerRepositories,
+      sourceRepository.full_name
     );
+    const matches = [];
 
-    matches.push(buildRepositorySummary(candidate, sharedContributors));
-  }
-
-  return createAnalyticsResponse(
-    sourceRepositoryPath.fullName,
-    rankRepositories(matches)
-  );
-}
-
-async function getSharedRepositoriesParallel(repoPath, githubToken) {
-  const { sourceRepository, sourceRepositoryPath, sourceContributorSet } =
-    await loadSourceRepositoryData(repoPath, githubToken);
-  const ownerRepositories = await getOwnerRepositories(
-    sourceRepository.owner.login,
-    sourceRepository.owner.type,
-    githubToken
-  );
-  const candidateRepositories = excludeSourceRepository(
-    ownerRepositories,
-    sourceRepository.full_name
-  );
-  const matches = await mapWithConcurrency(
-    candidateRepositories,
-    async (candidate) => {
-      const candidateContributors = await getRepositoryContributors(
-        candidate.owner.login,
-        candidate.name,
-        githubToken
-      );
+    for (const candidate of candidateRepositories) {
+      const candidateContributors =
+        await dependencies.getRepositoryContributors(
+          candidate.owner.login,
+          candidate.name,
+          githubToken
+        );
       const sharedContributors = getSharedContributors(
         candidateContributors,
         sourceContributorSet
       );
 
-      return buildRepositorySummary(candidate, sharedContributors);
+      matches.push(
+        dependencies.buildRepositorySummary(candidate, sharedContributors)
+      );
     }
-  );
 
-  return createAnalyticsResponse(
-    sourceRepositoryPath.fullName,
-    rankRepositories(matches)
-  );
+    return dependencies.createAnalyticsResponse(
+      sourceRepositoryPath.fullName,
+      dependencies.rankRepositories(matches)
+    );
+  };
+
+  const getSharedRepositoriesParallel = async (repoPath, githubToken) => {
+    const { sourceRepository, sourceRepositoryPath, sourceContributorSet } =
+      await loadSourceRepositoryData(repoPath, githubToken, dependencies);
+    const ownerRepositories = await dependencies.getOwnerRepositories(
+      sourceRepository.owner.login,
+      sourceRepository.owner.type,
+      githubToken
+    );
+    const candidateRepositories = excludeSourceRepository(
+      ownerRepositories,
+      sourceRepository.full_name
+    );
+    const matches = await dependencies.mapWithConcurrency(
+      candidateRepositories,
+      async (candidate) => {
+        const candidateContributors =
+          await dependencies.getRepositoryContributors(
+            candidate.owner.login,
+            candidate.name,
+            githubToken
+          );
+        const sharedContributors = getSharedContributors(
+          candidateContributors,
+          sourceContributorSet
+        );
+
+        return dependencies.buildRepositorySummary(
+          candidate,
+          sharedContributors
+        );
+      }
+    );
+
+    return dependencies.createAnalyticsResponse(
+      sourceRepositoryPath.fullName,
+      dependencies.rankRepositories(matches)
+    );
+  };
+
+  return {
+    getSharedRepositoriesParallel,
+    getSharedRepositoriesSequential,
+  };
 }
 
-export default {
-  getSharedRepositoriesParallel,
-  getSharedRepositoriesSequential,
+let githubServiceInstance = createGithubService();
+
+function configureGithubService(dependencies) {
+  githubServiceInstance = createGithubService(dependencies);
+}
+
+const githubService = {
+  getSharedRepositoriesParallel(repoPath, githubToken) {
+    return githubServiceInstance.getSharedRepositoriesParallel(
+      repoPath,
+      githubToken
+    );
+  },
+  getSharedRepositoriesSequential(repoPath, githubToken) {
+    return githubServiceInstance.getSharedRepositoriesSequential(
+      repoPath,
+      githubToken
+    );
+  },
 };
+
+export { configureGithubService, createGithubService };
+export default githubService;
